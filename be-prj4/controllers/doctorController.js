@@ -234,48 +234,157 @@ const updateDoctorProfile = async (req, res) => {
     }
 }
 
+// const createMedicalRecord = async (req, res) => {
+//     try {
+//         const { userId, symptoms, diagnosis } = req.body;
+//         const docData = req.doctor;
+
+//         if (!userId || !symptoms || !diagnosis) {
+//             return res.status(403).json({
+//                 success: false,
+//                 message: "Missing details."
+//             });
+//         }
+
+//         const medicalRecordData = {
+//             doctorId: docData._id,
+//             userId,
+//             symptoms,
+//             diagnosis
+//         }
+
+//         const newMedicalRecord = new medicalRecordModel(medicalRecordData);
+//         await newMedicalRecord.save();
+
+//         return res.json({
+//             success: true,
+//             message: "Create successfull."
+//         });
+
+//     } catch (e) {
+//         console.log(e);
+//         res.status(403).send({
+//             success: false,
+//             message: e.message
+//         });
+//     }
+// }
+
+// API tạo medical record cơ bản
 const createMedicalRecord = async (req, res) => {
     try {
-        const { userId, symptoms, diagnosis } = req.body;
-        const docData = req.doctor;
+        const { appointmentId, symptoms, diagnosis } = req.body;
+        const doctor = req.doctor;
 
-        if (!userId || !symptoms || !diagnosis) {
-            return res.status(403).json({
-                success: false,
-                message: "Missing details."
+        const appointment = await appointmentModel.findById(appointmentId);
+        if (!appointment || appointment.docId.toString() !== doctor._id.toString()) {
+            return res.status(403).json({ success: false, message: "Unauthorized" });
+        }
+
+        const existingRecord = await medicalRecordModel.findOne({ appointmentId });
+        if (existingRecord) {
+            return res.status(400).json({ success: false, message: "Record already exists" });
+        }
+
+        const newRecord = new medicalRecordModel({
+            appointmentId,
+            userId: appointment.userId,
+            doctorId: doctor._id,
+            symptoms,
+            diagnosis
+        });
+        await newRecord.save();
+
+        res.json({ success: true, record: newRecord });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ success: false, message: e.message });
+    }
+};
+
+// API gán tests (tìm staff least busy)
+const assignTests = async (req, res) => {
+    try {
+        const { appointmentId } = req.params;
+        const { testIds } = req.body; // Mảng ID test
+        const doctor = req.doctor;
+
+        const record = await medicalRecordModel.findOne({ appointmentId, doctorId: doctor._id });
+        if (!record) {
+            return res.status(404).json({ success: false, message: "Record not found" });
+        }
+
+        for (const testId of testIds) {
+            const test = await medicalTestModel.findById(testId);
+            if (!test) continue;
+
+            // Tìm all staff matching department = test.category, available: true
+            const staffs = await testingStaffModel.find({ department: test.category, available: true });
+
+            // Aggregation đếm pending per staff
+            const pendingCounts = await medicalRecordModel.aggregate([
+                { $unwind: "$orderedTests" },
+                { $match: { "orderedTests.status": "pending" } },
+                { $group: { _id: "$orderedTests.performedBy", count: { $sum: 1 } } }
+            ]);
+
+            let minCount = Infinity;
+            let selectedStaff = null;
+            staffs.forEach(staff => {
+                const count = pendingCounts.find(p => p._id.toString() === staff._id.toString())?.count || 0;
+                if (count < minCount) {
+                    minCount = count;
+                    selectedStaff = staff;
+                }
+            });
+
+            if (!selectedStaff) {
+                return res.status(404).json({ success: false, message: `No available staff for ${test.category}` });
+            }
+
+            record.orderedTests.push({
+                testId,
+                performedBy: selectedStaff._id,
+                status: 'pending'
             });
         }
 
-        const medicalRecordData = {
-            doctorId: docData._id,
-            userId,
-            symptoms,
-            diagnosis
-        }
-
-        const newMedicalRecord = new medicalRecordModel(medicalRecordData);
-        await newMedicalRecord.save();
-
-        return res.json({
-            success: true,
-            message: "Create successfull."
-        });
-
+        await record.save();
+        res.json({ success: true, message: "Tests assigned" });
     } catch (e) {
         console.log(e);
-        res.status(403).send({
-            success: false,
-            message: e.message
-        });
+        res.status(500).json({ success: false, message: e.message });
     }
-}
+};
 
-const createMedicalTestToMedicalRecord = async () => {
+// API kê đơn medicines
+const prescribeMedicines = async (req, res) => {
+    try {
+        const { appointmentId } = req.params;
+        const { medicines } = req.body; // Mảng {medicineId, dosage, frequency, duration, instructions}
+        const doctor = req.doctor;
 
-}
+        const record = await medicalRecordModel.findOne({ appointmentId, doctorId: doctor._id });
+        if (!record) {
+            return res.status(404).json({ success: false, message: "Record not found" });
+        }
 
-const createMedicineToMedicaRecord = async () => {
+        record.prescribedMedicines.push(...medicines);
 
-}
+        // Kiểm tra nếu all tests completed, set completed
+        const allTestsCompleted = record.orderedTests.length === 0 || record.orderedTests.every(test => test.status === "completed");
+        if (allTestsCompleted) {
+            record.isCompleted = true;
+            record.completedAt = new Date();
+            await appointmentModel.findByIdAndUpdate(appointmentId, { isCompleted: true });
+        }
 
-export { changeAvailablityD, doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createMedicalRecord, createMedicalTestToMedicalRecord, createMedicineToMedicaRecord }
+        await record.save();
+        res.json({ success: true, message: "Prescription added" });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({ success: false, message: e.message });
+    }
+};
+
+export { changeAvailablityD, doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createMedicalRecord, assignTests, prescribeMedicines }

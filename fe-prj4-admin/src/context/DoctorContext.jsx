@@ -12,6 +12,8 @@ const DoctorContextProvider = ({ children }) => {
   const [appointments, setAppointments] = useState([]);
   const [dashData, setDashData] = useState(false);
   const [profileData, setProfileData] = useState(false);
+  const [medicines, setMedicines] = useState([]);
+  const [medicalTests, setMedicalTests] = useState([]);
 
   const getAppointments = async () => {
     try {
@@ -19,6 +21,35 @@ const DoctorContextProvider = ({ children }) => {
 
       if (data.success) {
         setAppointments(data.appointments.reverse());
+      } else {
+        toast.error(data.message);
+      }
+    } catch (e) {
+      toast.error(e.response.data.message || e.message);
+    }
+  }
+
+  const getAllMedicines = async () => {
+    try {
+      const { data } = await axios.get(`${backendDocUrl}/medicines`, { headers: { dToken } });
+
+      if (data.success) {
+        setMedicines(data.medicines);
+        console.log(data.medicines);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (e) {
+      toast.error(e.response.data.message || e.message);
+    }
+  }
+
+  const getAllMedicalTests = async () => {
+    try {
+      const { data } = await axios.get(`${backendDocUrl}/medical-tests`, { headers: { dToken } });
+
+      if (data.success) {
+        setMedicalTests(data.tests);
       } else {
         toast.error(data.message);
       }
@@ -44,7 +75,7 @@ const DoctorContextProvider = ({ children }) => {
 
   const getDashData = async () => {
     try {
-      const {data} = await axios.get(`${backendDocUrl}/dashboard`, {headers: {dToken}});
+      const { data } = await axios.get(`${backendDocUrl}/dashboard`, { headers: { dToken } });
       if (data.success) {
         setDashData(data.dashData);
         console.log(data.dashData);
@@ -58,8 +89,8 @@ const DoctorContextProvider = ({ children }) => {
 
   const getProfileData = async () => {
     try {
-      const {data} = await axios.get(`${backendDocUrl}/profile`, {headers: {dToken}});
-      
+      const { data } = await axios.get(`${backendDocUrl}/profile`, { headers: { dToken } });
+
       if (data.success) {
         setProfileData(data.docData);
         console.log(data.docData);
@@ -84,7 +115,11 @@ const DoctorContextProvider = ({ children }) => {
     getDashData,
     profileData,
     setProfileData,
-    getProfileData
+    getProfileData,
+    medicines,
+    getAllMedicines,
+    medicalTests,
+    getAllMedicalTests
   };
 
   return (
