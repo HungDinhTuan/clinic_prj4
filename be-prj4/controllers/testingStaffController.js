@@ -1,6 +1,9 @@
 import testingStaffModel from "../models/testingStaffModel.js"
+import medicalRecordModel from "../models/medicalRecordModel.js"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import cloudinary from '../config/cloudinary.js'
+import appointmentModel from "../models/appointmentModel.js"
 
 //api change avaibility testing staff
 const changeAvailablityTS = async (req, res) => {
@@ -68,84 +71,112 @@ const loginTestingStaff = async (req, res) => {
     }
 }
 
-// API lấy pending tests cho staff
+//api get pending tests for testing staff
+// const getPendingTests = async (req, res) => {
+//     const testingStaffData = req.testingStaff;
+
+//     try {
+//         const medicalRecords = await medicalRecordModel.find({t});
+
+//         const pendingTestsByTestingStaff = medicalRecords.filter(record => {
+//             return record.orderedTests.some(test => test.performedBy?.toString() === testingStaffData._id.toString() && test.status === 'pending');
+//         });
+        
+//         res.status(200).json({
+//             success: true,
+//             data: pendingTestsByTestingStaff
+//         });
+//     } catch (e) {
+//         console.log(e);
+//         res.status(500).json({
+//             success: false,
+//             message: e.message
+//         });
+//     }
+// }
 const getPendingTests = async (req, res) => {
+    const testingStaffData = req.testingStaff;
+
     try {
-        const staff = req.testingStaff; // Từ auth middleware
-        const records = await medicalRecordModel.aggregate([
+        const pendingTests = await medicalRecordModel.aggregate([
             { $unwind: "$orderedTests" },
-            { $match: { "orderedTests.performedBy": staff._id, "orderedTests.status": "pending" } },
-            { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "patientData" } },
-            { $lookup: { from: "medicaltests", localField: "orderedTests.testId", foreignField: "_id", as: "testData" } },
-            { $project: { 
-                _id: 1, 
-                orderedTest: "$orderedTests", 
-                patient: { $arrayElemAt: ["$patientData", 0] }, 
-                test: { $arrayElemAt: ["$testData", 0] } 
-            } }
+            { $match: { "orderedTests.performedId": testingStaffData._id, "orderedTests.status": 'pending' } }, 
+            { $lookup: { from: 'users', localField: 'userId', foreignField: '_id', as: 'userData' } },
+            { $lookup: { from: 'appointments', localField: 'appointmentId', foreignField: '_id', as: 'appointmentData' } },
+            { $lookup: { from: 'medicaltests', localField: 'orderedTests.testId', foreignField: '_id', as: 'testData' } },
+            { $project: {
+                _id: 1,
+                orderedTest: "$orderedTests",
+                userData: { $arrayElemAt: ["$userData", 0] },
+                appointmentData: { $arrayElemAt: ["$appointmentData", 0] },
+                testData: { $arrayElemAt: ["$testData", 0] }
+            }}
         ]);
 
-        res.json({ success: true, pendingTests: records });
+        res.status(200).json({
+            success: true,
+            data: pendingTests
+        });
     } catch (e) {
         console.log(e);
-        res.status(500).json({ success: false, message: e.message });
+        res.status(500).json({
+            success: false,
+            message: e.message
+        });
     }
 };
 
-// API cập nhật test result với multi images
-const updateTestResult = async (req, res) => {
-    try {
-        const { recordId, testId } = req.params;
-        const { result, notes } = req.body;
-        const staff = req.testingStaff;
-        const images = [];
+//convert buffer to data uri
+const bufferToDataUri = (file) => {
+    return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+};
 
-        // Upload images to Cloudinary
-        if (req.files && req.files.length > 0) {
-            for (const file of req.files) {
-                const uploadResult = await new Promise((resolve, reject) => {
-                    const stream = cloudinary.uploader.upload_stream({ resource_type: 'image' }, (err, result) => {
-                        if (err) reject(err);
-                        else resolve(result.secure_url);
-                    });
-                    stream.end(file.buffer);
+//api assign details of medical test
+const assignDetailsMedicalTest = async (req, res) => {
+    const { medicalRecordId, result, notes } = req.body;
+    const imageFiles = req.files;
+    const testingStaffData = req.testingStaff;
+
+    if (!medicalRecordId || !result || (!imageFiles && imageFiles.length === 0)) {
+        return res.status(400).json({
+            success: false,
+            message: "All fields are required."
+        });
+    }
+
+    const medicalRecordData = await medicalRecordModel.findById(medicalRecordId);
+    if (!medicalRecordData) {
+        return res.status(404).json({
+            success: false,
+            message: "Medical record does not exist."
+        });
+    }
+
+    let orderedTests = medicalRecordData.orderedTests;
+    let isTestAssigned = false;
+    for (const orderedTest of orderedTests) {
+        //check if the testing staff is assigned to this test and the test is still pending
+        if (orderedTest.testingStaffId.toString() === testingStaffData._id.toString() && orderedTest.status === 'pending') {
+            orderedTest.status = 'completed';
+            orderedTest.result = result;
+            orderedTest.testDoneAt = new Date();
+            orderedTest.notes = notes;
+            //upload images to cloudinary
+            let imageUrls = [];
+            for (const file of imageFiles) {
+                const fileDataUri = bufferToDataUri(file);
+                const uploadResult = await cloudinary.uploader.upload(fileDataUri, {
+                    folder: 'medical_tests' 
                 });
-                images.push(uploadResult);
+                imageUrls.push(uploadResult.secure_url);
             }
+            orderedTest.images = imageUrls;
+            await medicalRecordModel.findByIdAndUpdate(medicalRecordId, { orderedTests });
+            isTestAssigned = true;
+            break;
         }
-
-        // Cập nhật orderedTest cụ thể
-        const update = await medicalRecordModel.updateOne(
-            { _id: recordId, "orderedTests._id": testId, "orderedTests.performedBy": staff._id },
-            { 
-                $set: { 
-                    "orderedTests.$.status": "completed",
-                    "orderedTests.$.result": result,
-                    "orderedTests.$.notes": notes,
-                    "orderedTests.$.images": images,
-                    "orderedTests.$.performedAt": new Date()
-                } 
-            }
-        );
-
-        if (update.modifiedCount === 0) {
-            return res.status(404).json({ success: false, message: "Test not found or unauthorized" });
-        }
-
-        // Kiểm tra nếu all tests completed, set medicalRecord isCompleted nếu có medicines
-        const record = await medicalRecordModel.findById(recordId);
-        const allTestsCompleted = record.orderedTests.every(test => test.status === "completed");
-        if (allTestsCompleted && record.prescribedMedicines.length > 0) {
-            record.isCompleted = true;
-            record.completedAt = new Date();
-            await record.save();
-        }
-
-        res.json({ success: true, message: "Test updated" });
-    } catch (e) {
-        console.log(e);
-        res.status(500).json({ success: false, message: e.message });
     }
-};
 
-export { changeAvailablityTS, loginTestingStaff, getPendingTests, updateTestResult };
+}
+
+export { changeAvailablityTS, loginTestingStaff, getPendingTests, assignDetailsMedicalTest };

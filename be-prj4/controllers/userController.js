@@ -6,6 +6,7 @@ import { v2 as cloudinary } from "cloudinary"
 import doctorModel from '../models/doctorModel.js';
 import appointmentModel from '../models/appointmentModel.js';
 import { GoogleGenAI } from '@google/genai';
+import medicalRecordModel from '../models/medicalRecordModel.js';
 
 // api to register a user
 const registerUser = async (req, res) => {
@@ -392,7 +393,7 @@ const bookAppointmentWithAI = async (req, res) => {
         }
 
         // valid symptom
-        const validationSymptomPrompt = `Is the following text a meaningful description of medical symptoms or health issues? If it is valid and related to a patient's condition, respond with only 'valid'. If it's nonsense, unrelated to health, or not descriptive of any symptoms, respond with only 'invalid'. Text: ${symptom}`;
+        const validationSymptomPrompt = `Mô tả của người dùng có liên quan đến y tế, sức khỏe hay muốn đặt lịch khám hay không. Respond with only 'valid'. If it's nonsense, unrelated to health, or not descriptive of any symptoms, respond with only 'invalid'. Text: ${symptom}`;
         const validationResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: validationSymptomPrompt
@@ -480,4 +481,43 @@ const bookAppointmentWithAI = async (req, res) => {
     }
 }
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointments, cancelAppointment, bookAppointmentWithAI };
+// api get medical records by user id
+// const getMedicalRecordByUserId = async (req, res) => {
+//     try {
+//         const userData = req.user;
+//         const medicalRecords = await medicalRecordModel.find({ userId: userData.id });
+//         return res.json({
+//             success: true,
+//             medicalRecords
+//         });
+//     } catch (e) {
+//         console.log(e);
+//         res.status(500).json({
+//             success: false,
+//             message: e.message
+//         });
+//     }
+// }
+const getMedicalRecordByUserId = async (req, res) => {
+    try {
+        const userData = req.user;
+        const medicalRecords = await medicalRecordModel.find({ userId: userData.id })
+            .sort({ createdAt: -1 }) 
+            .populate({ path: 'doctorId', select: 'name speciality image' })
+            .populate({ path: 'orderedTests.testId', select: 'name price category' })
+            .populate({ path: 'prescribedMedicines.medicineId', select: 'name category form' });
+
+        return res.json({
+            success: true,
+            medicalRecords
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({
+            success: false,
+            message: e.message
+        });
+    }
+};
+
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointments, cancelAppointment, bookAppointmentWithAI, getMedicalRecordByUserId };

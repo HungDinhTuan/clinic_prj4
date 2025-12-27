@@ -26,7 +26,7 @@ const medicalRecordSchema = new mongoose.Schema({
         result: { type: String },                      
         images: [{ type: String }],
         performedId: {type: String, require: true},
-        preformedAt: {type: Date},
+        testDoneAt: {type: Date},
         notes: {type: String}
     }],
     isCompleted: {type: Boolean, default: false},

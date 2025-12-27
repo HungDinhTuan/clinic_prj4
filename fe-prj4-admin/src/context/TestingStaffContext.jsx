@@ -27,40 +27,10 @@ const TestingStaffContextProvider = ({ children }) => {
         }
     }
 
-    const getPendingTests = async () => {
-        try {
-            const { data } = await axios.get(`${backendUrl}/testing-staff/pending-tests`, { headers: { sToken } });
-            if (data.success) {
-                setPendingTests(data.pendingTests);
-            } else {
-                toast.error(data.message);
-            }
-        } catch (e) {
-            toast.error(e.response?.data?.message || e.message);
-        }
-    };
-
-    const updateTestResult = async (recordId, testId, formData) => {
-        try {
-            const { data } = await axios.put(`${backendUrl}/testing-staff/update-test/${recordId}/${testId}`, formData, { headers: { sToken, 'Content-Type': 'multipart/form-data' } });
-            if (data.success) {
-                toast.success(data.message);
-                getPendingTests();
-            } else {
-                toast.error(data.message);
-            }
-        } catch (e) {
-            toast.error(e.response?.data?.message || e.message);
-        }
-    };
-
     const value = {
         backendTestingStaffUrl,
         tToken,
         setTToken,
-        pendingTests,
-        getPendingTests,
-        updateTestResult,
         medicalTests,
         getAllMedicalTests
     };
