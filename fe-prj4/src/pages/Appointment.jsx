@@ -36,17 +36,17 @@ const Appointment = () => {
       currentDate.setDate(today.getDate() + i);
 
       const endTime = new Date(currentDate);
-      endTime.setHours(18, 0, 0, 0);
+      endTime.setHours(22, 0, 0, 0);
 
       let startTime = new Date(currentDate);
       if (i === 0) {
         startTime.setHours(today.getHours(), today.getMinutes(), 0, 0);
       } else {
-        startTime.setHours(8, 0, 0, 0);
+        startTime.setHours(10, 0, 0, 0);
       }
 
-      if (startTime.getHours() < 8) {
-        startTime.setHours(8, 0, 0, 0);
+      if (startTime.getHours() < 10) {
+        startTime.setHours(10, 0, 0, 0);
       }
 
       // Advance to the next 30-minute slot if not exactly on one

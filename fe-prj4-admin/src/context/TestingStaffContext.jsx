@@ -10,6 +10,7 @@ const TestingStaffContextProvider = ({ children }) => {
 
     const [tToken, setTToken] = useState(localStorage.getItem('tToken') ? localStorage.getItem('tToken') : '');
     const [pendingTests, setPendingTests] = useState([]);
+    const [waitingResults, setWaitingResults] = useState([]);
     const [profileData, setProfileData] = useState(false);
     const [medicalTests, setMedicalTests] = useState([]);
 
@@ -27,12 +28,46 @@ const TestingStaffContextProvider = ({ children }) => {
         }
     }
 
+    const getPendingTests = async () => {
+        try {
+            const { data } = await axios.get(`${backendTestingStaffUrl}/pending-tests`, { headers: { tToken } });
+            if (data.success) {
+                setPendingTests(data.pendingTests);
+                console.log(data.pendingTests);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (e) {
+            toast.error(e.response.data.message || e.message);
+        }
+    }
+
+    const getWaitingResults = async () => {
+        try {
+            const { data } = await axios.get(`${backendTestingStaffUrl}/waiting-results`, { headers: { tToken } });
+            if (data.success) {
+                setWaitingResults(data.waitingResults);
+                console.log(data.waitingResults);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (e) {
+            toast.error(e.response.data.message || e.message);
+        }
+    }
+
     const value = {
         backendTestingStaffUrl,
         tToken,
         setTToken,
         medicalTests,
-        getAllMedicalTests
+        getAllMedicalTests,
+        pendingTests,
+        getPendingTests,
+        profileData,
+        setProfileData,
+        waitingResults,
+        getWaitingResults
     };
 
     return (

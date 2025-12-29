@@ -6,6 +6,7 @@ import medicalRecordModel from '../models/medicalRecordModel.js'
 import medicalTestModel from '../models/medicalTestModel.js'
 import testingStaffModel from '../models/testingStaffModel.js'
 import userModel from '../models/userModel.js'
+import medicineModel from '../models/medicineModel.js'
 
 const changeAvailablityD = async (req, res) => {
     try {
@@ -237,12 +238,12 @@ const updateDoctorProfile = async (req, res) => {
     }
 }
 
-const createDiagnosis  = async (req, res) => {
+const createDiagnosis = async (req, res) => {
     try {
-        const { userId, symptoms, diagnosis, testIds, appointmentId } = req.body;
+        const { symptons, diagnosis, testIds, appointmentId, notes } = req.body;
         const docData = req.doctor;
 
-        if (!userId || !symptoms || !diagnosis || !appointmentId) {
+        if (!symptons || !diagnosis || !appointmentId) {
             return res.status(400).json({
                 success: false,
                 message: "Missing details."
@@ -251,48 +252,65 @@ const createDiagnosis  = async (req, res) => {
 
         const appointmentData = await appointmentModel.findById(appointmentId);
 
-        if (!appointmentData || appointmentData.docId.toString() !== docData._id.toString() || appointmentData.userId.toString() !== userId.toString()) {
-            return res.status(400).json({
+        // Kiểm tra appointment trước khi sử dụng
+        if (!appointmentData) {
+            return res.status(404).json({
                 success: false,
                 message: "Appointment does not exist."
             });
         }
+
+        // Kiểm tra quyền doctor
+        if (appointmentData.docId.toString() !== docData._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "You do not have permission to create diagnosis for this appointment."
+            });
+        }
+
+        const userId = appointmentData.userId;
+        const userData = await userModel.findById(userId);
+
+        if (!userData) {
+            return res.status(404).json({
+                success: false,
+                message: "User does not exist."
+            });
+        }
+
         const slotDate = appointmentData?.slotDate;
 
         // assign tests to testing staffs
         let orderedTests = [];
         let errors = [];
-        if(testIds && testIds.length > 0) {
-            for(const testId of testIds) {
+        if (testIds && testIds.length > 0) {
+            for (const testId of testIds) {
                 const testData = await medicalTestModel.findById(testId);
-                if(!testData) {
-                    res.status(403).send({
-                        success: false,
-                        message: `Medical test with ID ${testId} does not exist.`
-                    });
+                if (!testData) {
+                    errors.push(`Medical test does not exist for id: ${testId}.`);
                     continue;
                 }
                 // find available testing staffs for this test category
                 const testingStaffs = await testingStaffModel.find({ department: testData.category, available: true });
-                if(testingStaffs.length === 0) {
+                if (testingStaffs.length === 0) {
                     errors.push(`No available testing staff for the test: ${testData.name}.`);
                     continue;
                 }
-                // find the testing staff with the least booked tests for this testId
+                // find the testing staff with the least booked tests for this specific date
                 let minTests = Infinity;
                 let matchTestingStaff = null;
                 testingStaffs.forEach(staff => {
                     const testCount = (staff.slots_booked[slotDate] || []).length;
-                    if(testCount < minTests) {
+                    if (testCount < minTests) {
                         minTests = testCount;
                         matchTestingStaff = staff;
                     }
-                })
+                });
                 // assign the test to the matched testing staff
-                if(matchTestingStaff) {
+                if (matchTestingStaff) {
                     const staffId = matchTestingStaff._id;
                     const updatedSlotsBooked = { ...matchTestingStaff.slots_booked };
-                    if(!updatedSlotsBooked[slotDate]) {
+                    if (!updatedSlotsBooked[slotDate]) {
                         updatedSlotsBooked[slotDate] = [];
                     }
                     const elemetOfSlotDate = `${testId}_${appointmentId}_${userId}`;
@@ -300,36 +318,44 @@ const createDiagnosis  = async (req, res) => {
                     await testingStaffModel.findByIdAndUpdate(staffId, { slots_booked: updatedSlotsBooked });
                 } else {
                     errors.push(`No available testing staff for the test: ${testData.name}.`);
-                }   
+                }
                 let orderedTest = {
                     testId: testData._id,
                     medicalTestData: testData,
-                    performedBy: matchTestingStaff ? matchTestingStaff._id : null,
-                    status: matchTestingStaff ? 'assigned' : 'pending'
+                    performedId: matchTestingStaff ? matchTestingStaff._id : null,
+                    status: 'pending'
                 };
                 orderedTests.push(orderedTest);
             }
         }
 
-        if(errors.length > 0) {
+        if (errors.length > 0) {
             return res.status(403).send({
                 success: false,
                 message: 'Some tests could not be assigned.',
                 errors
             });
         }
-                
+
         const medicalRecordData = {
             doctorId: docData._id,
             userId,
-            symptoms,
+            symptons,
             diagnosis,
             appointmentId,
-            orderedTests
-        }
+            slotDate: appointmentData.slotDate,
+            slotTime: appointmentData.slotTime,
+            userData,
+            orderedTests,
+            notes
+        };
 
         const newMedicalRecord = new medicalRecordModel(medicalRecordData);
         await newMedicalRecord.save();
+
+        // Set status based on whether tests were ordered
+        appointmentData.isCompleted = orderedTests.length > 0 ? 'in-tests' : 'completed';
+        await appointmentData.save();
 
         return res.json({
             success: true,
@@ -347,15 +373,9 @@ const createDiagnosis  = async (req, res) => {
 
 const prescribedMedicines = async (req, res) => {
     try {
-        const { medicalRecordId, medicines, followUpDate, docId } = req.body;
+        const { medicalRecordId, medicines, followUpDate } = req.body;
         const doctorData = req.doctor;
-
-        if (doctorData._id.toString() !== docId.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: "You do not have permission."
-            });
-        }
+        // console.log(medicines);
 
         if (!medicalRecordId || !medicines || medicines.length === 0 || !followUpDate) {
             return res.status(403).json({
@@ -371,21 +391,50 @@ const prescribedMedicines = async (req, res) => {
                 message: "Medical record does not exist."
             });
         }
+        // console.log(medicalRecordData);
+        const appointmentData = await appointmentModel.findById(medicalRecordData.appointmentId);
+        if (!appointmentData) {
+            return res.status(403).json({
+                success: false,
+                message: "Appointment does not exist."
+            });
+        }
 
         let prescribedMedicines = [];
+        let errors = [];
         for (const med of medicines) {
+            // console.log(med);
+            const medicineData = await medicineModel.findById(med.medicineId);
+            // console.log(med.medicineId);
+            // console.log(medicineData);
+
+            if (!medicineData) {
+                errors.push(`Medicine does not exist for id: ${med.medicineId}.`);
+                continue;
+            }
             prescribedMedicines.push({
                 medicineId: med.medicineId,
-                medicineData: med.medicineData,
+                medicineData,
+                frequency: med.frequency,
                 dosage: med.dosage,
                 durations: med.durations,
                 instructions: med.instructions
             });
         }
+        if (errors.length > 0) {
+            return res.status(403).send({
+                success: false,
+                message: 'Some medicines could not be added.',
+                errors
+            });
+        }
         medicalRecordData.prescribedMedicines = prescribedMedicines;
         medicalRecordData.followUpDate = followUpDate;
+        medicalRecordData.isCompleted = true;
         // medicalRecordData.findByIdAndUpdate(medicalRecordId, { prescribedMedicines, followUpDate });
         await medicalRecordData.save();
+        appointmentData.isCompleted = 'completed';
+        await appointmentData.save();
 
         res.status(200).json({
             success: true,
@@ -405,7 +454,9 @@ const getWaitingPatients = async (req, res) => {
         const docData = req.doctor;
         const docId = docData._id;
 
-        const appointments = await appointmentModel.find({ docId, cancelled: false, isCompleted: false });
+        const appointments = await appointmentModel.find({ docId, cancelled: false, isCompleted: 'pending' || 'in-tests' });
+        // console.log(appointments);
+
         // sort appointments by slotDate
         appointments.sort((a, b) => {
             const [dayA, monthA, yearA] = a.slotDate.split('_').map(Number);
@@ -419,36 +470,41 @@ const getWaitingPatients = async (req, res) => {
             path: 'userId',
             select: 'name image dob phone gender'
         });
+
         // filter medical records where all ordered tests are completed
         const medicalRecordsTestsDone = medicalRecords.filter(record => {
             return record.orderedTests.every(test => test.status === 'completed');
         });
-        // sort medical records by testDoneAt
-        medicalRecords.sort((a, b) => {
+        // console.log('before sort', medicalRecordsTestsDone);
+
+        // sort medical records done by testDoneAt
+        medicalRecordsTestsDone.sort((a, b) => {
             const maxTestDoneAtA = a.orderedTests.length > 0 ? new Date(Math.max(...a.orderedTests.map(test => test.testDoneAt ? new Date(test.testDoneAt) : 0))) : new Date(0);
             const maxTestDoneAtB = b.orderedTests.length > 0 ? new Date(Math.max(...b.orderedTests.map(test => test.testDoneAt ? new Date(test.testDoneAt) : 0))) : new Date(0);
-            return maxTestDoneAtA - maxTestDoneAtB; 
+            return maxTestDoneAtA - maxTestDoneAtB;
         });
+        // console.log('after sort', medicalRecordsTestsDone);
 
         const waitingPatients = [];
         let i = 0, j = 0;
-        if(appointments.length === 0) waitingPatients = medicalRecordsTestsDone;
-        if(medicalRecordsTestsDone.length === 0) waitingPatients = appointments;
+        // if(appointments.length === 0) waitingPatients = medicalRecordsTestsDone;
+        // if(medicalRecordsTestsDone.length === 0) waitingPatients = appointments;
         // merge two sorted arrays appointments and medicalRecordsTestsDone to get first two from appointments then one from medicalRecordsTestsDone
-        while (i < appointments.length && j < medicalRecordsTestsDone.length) {
-            if (i < appointments.length){
-                waitingPatients.push({...appointments[i].toObject(), from: 'appointment'});
+        while (i < appointments.length || j < medicalRecordsTestsDone.length) {
+            if (i < appointments.length) {
+                waitingPatients.push({ ...appointments[i].toObject(), from: 'appointment' });
                 i++;
             }
-            if (i < appointments.length){
-                waitingPatients.push({...appointments[i].toObject(), from: 'appointment'});
+            if (i < appointments.length) {
+                waitingPatients.push({ ...appointments[i].toObject(), from: 'appointment' });
                 i++;
             }
-            if(j < medicalRecordsTestsDone.length){
-                waitingPatients.push({...medicalRecordsTestsDone[j].toObject(), userModel: medicalRecordsTestsDone[j].userId, from: 'medicalRecord'});
+            if (j < medicalRecordsTestsDone.length) {
+                waitingPatients.push({ ...medicalRecordsTestsDone[j].toObject(), userModel: medicalRecordsTestsDone[j].userId, from: 'medicalRecord' });
                 j++;
             }
         }
+        // console.log(waitingPatients);
 
         return res.status(200).json({
             success: true,

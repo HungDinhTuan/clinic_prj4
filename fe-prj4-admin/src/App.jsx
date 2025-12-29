@@ -12,14 +12,15 @@ import AddEmployee from './pages/admin/AddEmployee.jsx';
 import EmployeesList from './pages/admin/EmployeesList.jsx';
 import { DoctorContext } from './context/DoctorContext.jsx';
 import DoctorDashboard from './pages/doctor/DoctorDashboard.jsx';
-import DoctorAppointments from './pages/doctor/DoctorAppointments.jsx';
+import DoctorWaitingList from './pages/doctor/DoctorWaitingList.jsx';
 import DoctorProfile from './pages/doctor/DoctorProfile.jsx';
 import Medicine from './pages/admin/Medicine.jsx';
 import MedicalTest from './pages/admin/MedicalTest.jsx';
 import TestingStaffDashboard from './pages/testingStaff/TestingStaffDashboard.jsx';
 import TestingStaffProfile from './pages/testingStaff/TestingStaffProfile.jsx';
 import { TestingStaffContext } from './context/TestingStaffContext.jsx';
-import TSMedicalTest from './pages/testingStaff/TSMedicalTest.jsx';
+import TSMedicalTest from './pages/testingStaff/TestingStaffWaitingList.jsx';
+import TestingStaffWaitingResults from './pages/testingStaff/TestingStaffWaitingResults.jsx';
 
 const App = () => {
 
@@ -38,20 +39,21 @@ const App = () => {
             <Routes>
               {/* Admin route */}
               <Route path='/' element={<></>} />
-              <Route path='/admin-dashboard' element={<Dashboard />} />
-              <Route path='/all-appointments' element={<AllAppointments />} />
-              <Route path='/add-employee' element={<AddEmployee />} />
-              <Route path='/employees-list' element={<EmployeesList />} />
-              <Route path='/medicines' element={<Medicine />} />
-              <Route path='/medical-tests' element={<MedicalTest />} />
+              <Route path='/admin/dashboard' element={<Dashboard />} />
+              <Route path='/admin/all-appointments' element={<AllAppointments />} />
+              <Route path='/admin/add-employee' element={<AddEmployee />} />
+              <Route path='/admin/employees-list' element={<EmployeesList />} />
+              <Route path='/admin/medicines' element={<Medicine />} />
+              <Route path='/admin/medical-tests' element={<MedicalTest />} />
               {/* Doctor route */}
-              <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
-              <Route path='/doctor-appointments' element={<DoctorAppointments />} />
-              <Route path='/doctor-profile' element={<DoctorProfile />} />
+              <Route path='/doctor/dashboard' element={<DoctorDashboard />} />
+              <Route path='/doctor/waiting-list' element={<DoctorWaitingList />} />
+              <Route path='/doctor/profile' element={<DoctorProfile />} />
               {/* Testing staff route */}
-              <Route path='/testing-staff-dashboard' element={<TestingStaffDashboard />} />
-              <Route path='/testing-staff-medical-test' element={<TSMedicalTest />} />
-              <Route path='/testing-staff-profile' element={<TestingStaffProfile />} />
+              <Route path='/testing-staff/dashboard' element={<TestingStaffDashboard />} />
+              <Route path='/testing-staff/pending-tests' element={<TSMedicalTest />} />
+              <Route path='/testing-staff/waiting-results' element={<TestingStaffWaitingResults />} />
+              <Route path='/testing-staff/profile' element={<TestingStaffProfile />} />
             </Routes>
           </div>
         </div>

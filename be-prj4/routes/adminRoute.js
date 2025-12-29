@@ -1,5 +1,5 @@
 import express from 'express'
-import { addDoctor, loginAdmin, getAllDoctors, appointmentsAdmin, cancelAppointmentAdmin, adminDashboard, addMedicine, getAllMedicines, editMedicine, deleteMedicine, findMedicineById, addMedicalTest, getAllMedicalTests, editMedicalTest, deleteMedicalTest, findMedicalTestById, addTestingStaff, getAllTestingStaff } from '../controllers/adminController.js'
+import { addDoctor, loginAdmin, getAllDoctors, appointmentsAdmin, cancelAppointmentAdmin, adminDashboard, addMedicine, getAllMedicines, editMedicine, deleteMedicine, findMedicineById, addMedicalTest, getAllMedicalTests, editMedicalTest, deleteMedicalTest, findMedicalTestById, addTestingStaff, getAllTestingStaff, pagingMedicalTests, pagingMedicines } from '../controllers/adminController.js'
 import { changeAvailablityD } from '../controllers/doctorController.js'
 import { changeAvailablityTS } from '../controllers/testingStaffController.js'
 import upload from '../middlewares/multer.js'
@@ -19,11 +19,13 @@ adminRoute.put('/cancel-appointment', authAdmin, cancelAppointmentAdmin);
 adminRoute.get('/dashboard', authAdmin, adminDashboard);
 adminRoute.post('/add-medicine', authAdmin, addMedicine);
 adminRoute.get('/medicines', authAdmin, getAllMedicines);
+adminRoute.get('/medicines-paging', authAdmin, pagingMedicines);
 adminRoute.get('/medicine/:id', authAdmin, findMedicineById);
 adminRoute.put('/update-medicine', authAdmin, editMedicine);
 adminRoute.delete('/delete-medicine', authAdmin, deleteMedicine);
 adminRoute.post('/add-medical-test', authAdmin, addMedicalTest);
 adminRoute.get('/medical-tests', authAdmin, getAllMedicalTests);
+adminRoute.get('/medical-tests-paging', authAdmin, pagingMedicalTests);
 adminRoute.put('/update-medical-test', authAdmin, editMedicalTest);
 adminRoute.get('/medical-test/:id', authAdmin, findMedicalTestById);
 adminRoute.delete('/delete-medical-test', authAdmin, deleteMedicalTest);

@@ -17,6 +17,9 @@ import detail_icon from './detail_icon.svg'
 import medical_test_icon from './medical_test_icon.svg'
 import right_arrow_icon from './right_arrow_icon.svg'
 import left_arrow_icon from './left_arrow_icon.svg'
+import prescribe_medicines_icon from './prescribe_medicines_icon.png'
+import prescribe_tests_icon from './prescribe_tests_icon.png'
+import details_medical_test_icon from './details_medical_test_icon.png'
 
 export const assets = {
     add_icon,
@@ -37,5 +40,8 @@ export const assets = {
     detail_icon,
     medical_test_icon,
     right_arrow_icon,
-    left_arrow_icon
+    left_arrow_icon,
+    prescribe_medicines_icon,
+    prescribe_tests_icon,
+    details_medical_test_icon
 }

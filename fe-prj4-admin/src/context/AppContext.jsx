@@ -1,6 +1,5 @@
 import { createContext } from "react";
 
-
 export const AppContext = createContext();
 
 const AppContextProvider = ({ children }) => {
@@ -9,6 +8,7 @@ const AppContextProvider = ({ children }) => {
 
   const calculateAge = (dob) => {
     const today = new Date();
+    // console.log(dob);
     const birthDate = new Date(dob);
 
     let age = today.getFullYear() - birthDate.getFullYear();

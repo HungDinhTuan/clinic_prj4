@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 
 const medicalRecordSchema = new mongoose.Schema({
     appointmentId: {type: String, require: true},
+    slotDate: {type: String, require: true},
+    slotTime: {type: String, require: true},
+    userData: {type: Object, require: true},
     userId: {type: String, require: true},
     doctorId: {type: String, require: true},
     symptons: {type: String},
@@ -27,7 +30,8 @@ const medicalRecordSchema = new mongoose.Schema({
         images: [{ type: String }],
         performedId: {type: String, require: true},
         testDoneAt: {type: Date},
-        notes: {type: String}
+        notes: {type: String},
+        etc: {type: Date}
     }],
     isCompleted: {type: Boolean, default: false},
     completedAt: {type: Date}

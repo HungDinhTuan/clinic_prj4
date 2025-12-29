@@ -32,7 +32,7 @@ const Medicine = () => {
 
     const fetchMedicines = async (page = 1) => {
         try {
-            const { data } = await axios.get(`${backendUrl}/medicines?page=${page}&limit=10`, {
+            const { data } = await axios.get(`${backendUrl}/medicines-paging?page=${page}&limit=8`, {
                 headers: { aToken }
             });
             if (data.success) {

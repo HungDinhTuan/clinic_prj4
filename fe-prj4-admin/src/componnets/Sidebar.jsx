@@ -18,42 +18,42 @@ const Sidebar = () => {
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/admin-dashboard'}>
+          } to={'/admin/dashboard'}>
             <img src={assets.home_icon} alt="" />
             <p className='hidden md:block'>Dashboard</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/all-appointments'}>
+          } to={'/admin/all-appointments'}>
             <img src={assets.appointment_icon} alt="" />
             <p className='hidden md:block'>Appointments</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/add-employee'}>
+          } to={'/admin/add-employee'}>
             <img src={assets.add_icon} alt="" />
             <p className='hidden md:block'>Add Employee</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/employees-list'}>
+          } to={'/admin/employees-list'}>
             <img src={assets.people_icon} alt="" />
             <p className='hidden md:block'>Employees List</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/medicines'}>
+          } to={'/admin/medicines'}>
             <img src={assets.medicines_icon} alt="" />
             <p className='hidden md:block'>Medicines</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/medical-tests'}>
+          } to={'/admin/medical-tests'}>
             <img src={assets.medical_test_icon} alt="" />
             <p className='hidden md:block'>Medical Tests</p>
           </NavLink>
@@ -64,21 +64,21 @@ const Sidebar = () => {
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/doctor-dashboard'}>
+          } to={'/doctor/dashboard'}>
             <img src={assets.home_icon} alt="" />
             <p className='hidden md:block'>Dashboard</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/doctor-appointments'}>
+          } to={'/doctor/waiting-list'}>
             <img src={assets.appointment_icon} alt="" />
-            <p className='hidden md:block'>Appointments</p>
+            <p className='hidden md:block'>Waiting List</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/doctor-profile'}>
+          } to={'/doctor/profile'}>
             <img src={assets.people_icon} alt="" />
             <p className='hidden md:block'>Profile</p>
           </NavLink>
@@ -89,21 +89,28 @@ const Sidebar = () => {
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/testing-staff-dashboard'}>
+          } to={'/testing-staff/dashboard'}>
             <img src={assets.home_icon} alt="" />
             <p className='hidden md:block'>Dashboard</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/testing-staff-medical-test'}>
+          } to={'/testing-staff/pending-tests'}>
             <img src={assets.appointment_icon} alt="" />
-            <p className='hidden md:block'>Medical Test</p>
+            <p className='hidden md:block'>Pending Tests</p>
           </NavLink>
           <NavLink className={({ isActive }) =>
             `flex items-center gap-3 py-3.5 px-6 cursor-pointer
      ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
-          } to={'/testing-staff-profile'}>
+          } to={'/testing-staff/waiting-results'}>
+            <img src={assets.appointment_icon} alt="" />
+            <p className='hidden md:block'>Waiting Results</p>
+          </NavLink>
+          <NavLink className={({ isActive }) =>
+            `flex items-center gap-3 py-3.5 px-6 cursor-pointer
+     ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`
+          } to={'/testing-staff/profile'}>
             <img src={assets.people_icon} alt="" />
             <p className='hidden md:block'>Profile</p>
           </NavLink>

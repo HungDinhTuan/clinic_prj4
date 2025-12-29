@@ -33,7 +33,7 @@ const MedicalTest = () => {
 
   const fetchMedicalTestDetails = async (page = 1) => {
     try {
-      const { data } = await axios.get(`${backendUrl}/medical-tests?page=${page}&limit=10`, { headers: { aToken } });
+      const { data } = await axios.get(`${backendUrl}/medical-tests-paging?page=${page}&limit=8`, { headers: { aToken } });
       if (data.success) {
         setMedicalTests(data.tests);
         setCurrentPage(data.currentPage);
@@ -280,7 +280,7 @@ const MedicalTest = () => {
                     <p>{index + 1}</p>
                     <p className='font-medium'>{item.name}</p>
                     <p><NumericFormat
-                      value={item.fees}
+                      value={item.price}
                       thousandSeparator="."
                       decimalSeparator=","
                       displayType="text"
@@ -531,7 +531,7 @@ const MedicalTest = () => {
 
                     <button
                       className='px-5 py-2 rounded border text-sm text-stone-600 hover:bg-gray-100 transition'
-                      onClick={() => { setShowDetails(false); setMedicalTestDetails(null); }}>
+                      onClick={() => { setShowDetails(false); setMedicalTestDetails(null); setIsEdit(false); }}>
                       Close
                     </button>
                   </div>

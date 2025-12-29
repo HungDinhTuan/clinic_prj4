@@ -14,6 +14,7 @@ const DoctorContextProvider = ({ children }) => {
   const [profileData, setProfileData] = useState(false);
   const [medicines, setMedicines] = useState([]);
   const [medicalTests, setMedicalTests] = useState([]);
+  const [waitingPatients, setWaitingPatients] = useState([]);
 
   const getAppointments = async () => {
     try {
@@ -35,7 +36,7 @@ const DoctorContextProvider = ({ children }) => {
 
       if (data.success) {
         setMedicines(data.medicines);
-        console.log(data.medicines);
+        // console.log(data.medicines);
       } else {
         toast.error(data.message);
       }
@@ -50,6 +51,7 @@ const DoctorContextProvider = ({ children }) => {
 
       if (data.success) {
         setMedicalTests(data.tests);
+        console.log(data.tests);
       } else {
         toast.error(data.message);
       }
@@ -78,7 +80,7 @@ const DoctorContextProvider = ({ children }) => {
       const { data } = await axios.get(`${backendDocUrl}/dashboard`, { headers: { dToken } });
       if (data.success) {
         setDashData(data.dashData);
-        console.log(data.dashData);
+        // console.log(data.dashData);
       } else {
         toast.error(data.message);
       }
@@ -93,7 +95,21 @@ const DoctorContextProvider = ({ children }) => {
 
       if (data.success) {
         setProfileData(data.docData);
-        console.log(data.docData);
+        // console.log(data.docData);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (e) {
+      toast.error(e.response.data.message || e.message);
+    }
+  }
+
+  const getWaitingPatients = async () => {
+    try {
+      const { data } = await axios.get(`${backendDocUrl}/waiting-patients`, { headers: { dToken } });
+      if (data.success) {
+        setWaitingPatients(data.waitingPatients);
+        console.log(data.waitingPatients);
       } else {
         toast.error(data.message);
       }
@@ -119,7 +135,9 @@ const DoctorContextProvider = ({ children }) => {
     medicines,
     getAllMedicines,
     medicalTests,
-    getAllMedicalTests
+    getAllMedicalTests,
+    waitingPatients,
+    getWaitingPatients
   };
 
   return (

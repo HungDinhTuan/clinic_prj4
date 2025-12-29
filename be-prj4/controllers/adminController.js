@@ -252,11 +252,28 @@ const addMedicine = async (req, res) => {
     }
 }
 
-// api show all medicines
+// api get all medicines
 const getAllMedicines = async (req, res) => {
     try {
+        const medicines = await medicineModel.find({});
+        return res.json({
+            success: true,
+            medicines
+        });
+    } catch (e) {
+        console.log(e)
+        return res.status(400).json({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+// api paging medicines
+const pagingMedicines = async (req, res) => {
+    try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 8;
         const skip = (page - 1) * limit;
 
         const totalMedicines = await medicineModel.countDocuments();
@@ -404,11 +421,28 @@ const addMedicalTest = async (req, res) => {
     }
 }
 
-// api get all medical tests
+//api get all medical tests
 const getAllMedicalTests = async (req, res) => {
     try {
+        const medicalTests = await medicalTestModel.find({});
+        return res.json({
+            success: true,
+            tests: medicalTests
+        });
+    } catch (e) {
+        console.log(e)
+        return res.status(400).json({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+// api paging medical tests
+const pagingMedicalTests = async (req, res) => {
+    try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 8;
         const skip = (page - 1) * limit;
 
         const totalTests = await medicalTestModel.countDocuments();
@@ -593,4 +627,4 @@ const getAllTestingStaff = async (req, res) => {
     }
 }
 
-export { addDoctor, loginAdmin, getAllDoctors, appointmentsAdmin, cancelAppointmentAdmin, adminDashboard, addMedicine, getAllMedicines, editMedicine, deleteMedicine, findMedicineById, addMedicalTest, getAllMedicalTests, editMedicalTest, findMedicalTestById, deleteMedicalTest, addTestingStaff, getAllTestingStaff }
+export { addDoctor, loginAdmin, getAllDoctors, appointmentsAdmin, cancelAppointmentAdmin, adminDashboard, addMedicine, getAllMedicines, pagingMedicines, editMedicine, deleteMedicine, findMedicineById, addMedicalTest, getAllMedicalTests, pagingMedicalTests, editMedicalTest, findMedicalTestById, deleteMedicalTest, addTestingStaff, getAllTestingStaff }

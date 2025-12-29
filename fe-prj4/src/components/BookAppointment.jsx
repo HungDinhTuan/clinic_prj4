@@ -37,23 +37,23 @@ const BookAppointment = () => {
             currentDate.setDate(today.getDate() + i);
 
             const endTime = new Date(currentDate);
-            endTime.setHours(18, 0, 0, 0);
+            endTime.setHours(22, 0, 0, 0);
 
             let startTime = new Date(currentDate);
             if (i === 0) {
                 startTime.setHours(today.getHours(), today.getMinutes(), 0, 0);
             } else {
-                startTime.setHours(8, 0, 0, 0);
+                startTime.setHours(10, 0, 0, 0);
             }
 
-            if (startTime.getHours() < 8) {
-                startTime.setHours(8, 0, 0, 0);
+            if (startTime.getHours() < 10) {
+                startTime.setHours(10, 0, 0, 0);
             }
 
-            // Advance to the next 30-minute slot if not exactly on one
+            // Advance to the next 15-minute slot if not exactly on one
             let minutes = startTime.getMinutes();
-            if (minutes % 30 !== 0) {
-                startTime.setMinutes(Math.ceil(minutes / 30) * 30);
+            if (minutes % 15 !== 0) {
+                startTime.setMinutes(Math.ceil(minutes / 15) * 15);
                 if (startTime.getMinutes() === 60) {
                     startTime.setMinutes(0);
                     startTime.setHours(startTime.getHours() + 1);
@@ -81,7 +81,7 @@ const BookAppointment = () => {
                     time: formattedTime,
                 });
 
-                currentTime.setMinutes(currentTime.getMinutes() + 30);
+                currentTime.setMinutes(currentTime.getMinutes() + 15);
             }
 
             slots.push(timeSlots);
@@ -186,23 +186,23 @@ const BookAppointment = () => {
 
             // restore saved time and date
             if (savedSlotIndexStr) {
-                const savedIndex= Number(savedSlotIndexStr);
-                if(docSlots[savedIndex] && docSlots[savedIndex].length > 0){
+                const savedIndex = Number(savedSlotIndexStr);
+                if (docSlots[savedIndex] && docSlots[savedIndex].length > 0) {
                     setSlotIndex(savedIndex);
 
                     if (savedSlotTime) {
                         const isValidTime = docSlots[savedIndex].some(slot => slot.time === savedSlotTime);
                         if (isValidTime) {
                             setSlotTime(savedSlotTime);
-                        }else{
+                        } else {
                             setSlotTime('');
                         }
                     }
                 }
-            }else if (savedSlotTime) {
+            } else if (savedSlotTime) {
                 // time ony save, check current date
                 const currentDateSlots = docSlots[slotIndex];
-                if(currentDateSlots?.some(slot => slot.time === savedSlotTime)){
+                if (currentDateSlots?.some(slot => slot.time === savedSlotTime)) {
                     setSlotTime(savedSlotTime);
                 }
             }
