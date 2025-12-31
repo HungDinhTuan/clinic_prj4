@@ -31,14 +31,16 @@ const DoctorWaitingList = () => {
   // console.log(selectedItem);
   const [showPrescribeTestsPopup, setShowPrescribeTestsPopup] = useState(false);
   const [showPrescribeMedsPopup, setShowPrescribeMedsPopup] = useState(false);
+  const [showCurrentMedicalRecordPopup, setShowCurrentMedicalRecordPopup] = useState(false);
+  const [medicalRecordData, setMedicalRecordData] = useState(null);
 
   const addMedicineToPrescription = () => {
     setPrescribeMedicines([...prescribeMedicines, {
-      medicineId: '',
-      frequency: '',
-      duration: '',
-      dosage: '',
-      instructions: ''
+      medicineId: selectedItem?._id || '',
+      frequency: frequency,
+      duration: duration,
+      dosage: dosage,
+      instructions: instructions
     }]);
   }
 
@@ -81,11 +83,11 @@ const DoctorWaitingList = () => {
     }
   }
 
-  const prescribeTests = async (medicalRecordId) => {
+  const prescribeMeds = async (medicalRecordId) => {
     try {
-      const { data } = await axios.put(`${backendDocUrl}/prescribe-medicines`, {
+      const { data } = await axios.put(`${backendDocUrl}/prescription-medicines`, {
         medicalRecordId,
-        prescribeMedicines,
+        medicines: prescribeMedicines,
         followUpDate
       }, { headers: { dToken } });
       if (data.success) {
@@ -94,6 +96,8 @@ const DoctorWaitingList = () => {
         setFollowUpDate('');
         getWaitingPatients();
         setShowPrescribeMedsPopup(false);
+        // setMedicalRecordData(data.currentMedicalRecord);
+        // setShowCurrentMedicalRecordPopup(true);
       } else {
         toast.error(data.message);
       }
@@ -384,7 +388,13 @@ const DoctorWaitingList = () => {
                 <button
                   className='px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary-dark transition cursor-pointer'
                   onClick={() => {
-                    prescribeTests(selectedItem.medicalRecord._id);
+                    // selectedItem có thể là appointment hoặc medicalRecord, cần xác định đúng
+                    const medicalRecordId = selectedItem.from === 'medicalRecord' ? selectedItem._id : selectedItem.medicalRecord?._id;
+                    if (!medicalRecordId) {
+                      toast.error('Medical record not found');
+                      return;
+                    }
+                    prescribeMeds(medicalRecordId);
                   }}
                 >
                   Create Prescription
@@ -394,6 +404,60 @@ const DoctorWaitingList = () => {
           </div>
         )
       }
+      {/* popup current medical record */}
+      {/* {
+        showCurrentMedicalRecordPopup && medicalRecordData && (
+          <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
+            <div className='bg-white rounded-xl p-6 w-full max-w-4xl shadow-lg animate-fadeIn overflow-y-auto max-h-[80vh]'>
+              <p className='text-lg font-semibold text-neutral-800 mb-4'>
+                Current Medical Record
+              </p>
+              <div className='space-y-4'>
+                <div>
+                  <h3 className='font-medium text-gray-700 mb-2'>Symptoms:</h3>
+                  <p className='text-gray-600'>{medicalRecordData.symptons}</p>
+                </div>
+                <div>
+                  <h3 className='font-medium text-gray-700 mb-2'>Diagnosis:</h3>
+                  <p className='text-gray-600'>{medicalRecordData.diagnosis}</p>
+                </div>
+                <div>
+                  <h3 className='font-medium text-gray-700 mb-2'>Notes:</h3>
+                  <p className='text-gray-600'>{medicalRecordData.notes}</p>
+                </div>
+                <div>
+                  <h3 className='font-medium text-gray-700 mb-2'>Prescribed Medicines:</h3>
+                  <ul className='list-disc list-inside text-gray-600'>
+                    {medicalRecordData.prescribedMedicines.map((med, index) => (
+                      <li key={index}>
+                        {med.medicineData.name} - {med.dosage}, {med.frequency}, {med.duration} - {med.instructions}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className='font-medium text-gray-700 mb-2'>Ordered Tests:</h3>
+                  <ul className='list-disc list-inside text-gray-600'>
+                    {medicalRecordData.orderedTests.map((test, index) => (
+                      <li key={index}>
+                        {test.testData.name} - {test.status}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className='flex justify-end mt-6'>
+                <button
+                  className='px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary-dark transition cursor-pointer'
+                  onClick={() => setShowCurrentMedicalRecordPopup(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      } */}
     </div>
   )
 }

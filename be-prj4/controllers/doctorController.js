@@ -436,9 +436,12 @@ const prescribedMedicines = async (req, res) => {
         appointmentData.isCompleted = 'completed';
         await appointmentData.save();
 
+        const currentMedicalRecord = await medicalRecordModel.findById(medicalRecordId);
+
         res.status(200).json({
             success: true,
-            message: "Medicines prescribed successfully."
+            message: "Medicines prescribed successfully.",
+            currentMedicalRecord
         });
     } catch (e) {
         console.log(e);

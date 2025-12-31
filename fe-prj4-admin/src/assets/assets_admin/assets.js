@@ -20,6 +20,8 @@ import left_arrow_icon from './left_arrow_icon.svg'
 import prescribe_medicines_icon from './prescribe_medicines_icon.png'
 import prescribe_tests_icon from './prescribe_tests_icon.png'
 import details_medical_test_icon from './details_medical_test_icon.png'
+import bell_icon from './bell_icon.png'
+import search_icon from './search_icon.png'
 
 export const assets = {
     add_icon,
@@ -43,5 +45,7 @@ export const assets = {
     left_arrow_icon,
     prescribe_medicines_icon,
     prescribe_tests_icon,
-    details_medical_test_icon
+    details_medical_test_icon,
+    bell_icon,
+    search_icon
 }

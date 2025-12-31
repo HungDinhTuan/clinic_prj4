@@ -86,7 +86,7 @@ const getPendingTests = async (req, res) => {
         const errors = [];
         for (const record of medicalRecords) {
             for (const test of record.orderedTests) {
-                if (test.performedId === testingStaffId && test.status === 'pending') {
+                if (test.performedId.toString() === testingStaffId?.toString() && test.status === 'pending') {
                     const medicalTestInfo = await medicalTestModel.findById(test.testId);
                     if (!medicalTestInfo) {
                         errors.push(`Medical test with ID ${test.testId} not found.`);
