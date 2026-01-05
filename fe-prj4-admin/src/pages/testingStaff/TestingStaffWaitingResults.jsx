@@ -51,88 +51,119 @@ const TestingStaffWaitingResults = () => {
     }, [tToken]);
 
     return (
-        <div className='w-full max-w-6xl m-5'>
-            <div className='bg-white border rounded text-sm max-h-[80vh] min-h-[50vh] overflow-y-scroll'>
-                <div className='max-sm:hidden grid grid-cols-[0.5fr_1.5fr_1.5fr_1.5fr_1fr_2fr_2fr_2fr_2fr_1fr] gap-1 py-3 px-6 border-b'>
-                    <p>#</p>
-                    <p>Patient</p>
-                    <p>Doctor</p>
-                    <p className='text-center'>Medical Test</p>
-                    <p className='text-center'>Fees</p>
-                    <p className='text-center'>Symptoms</p>
-                    <p className='text-center'>Diagnosis</p>
-                    <p className='text-center'>Note</p>
-                    <p className='text-center'>ETC</p>
-                    <p className='text-center'>Action</p>
-                </div>
-                {
-                    waitingResults.map((item, index) => (
-                        <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1.5fr_1.5fr_1fr_2fr_2fr_2fr_2fr_1fr] gap-1 items-center text-gray-500 px-3 py-6 border-b hover:bg-gray-50' key={index}>
-                            <p className='max-sm:hidden'>{index + 1}</p>
-                            <div className='flex items-center gap-2'>
-                                <img className='w-8 rounded-full' src={item.userData.image} alt="" /> <p>{item.userData.name}</p>
-                            </div>
-                            <div className='flex items-center gap-2'>
-                                <img className='w-8 rounded-full' src={item.doctorData.image} alt="" /> <p>{item.doctorData.name}</p>
-                            </div>
-                            <p className='max-sm:hidden flex justify-center items-center'>{item.medicalTestInfo.name}</p>
-                            <p className='flex justify-center items-center'>
-                                <NumericFormat
-                                    value={item.medicalTestInfo.price}
-                                    thousandSeparator="."
-                                    decimalSeparator=","
-                                    displayType="text"
-                                    decimalScale={3}
-                                /> VND
-                            </p>
-                            <p className='flex justify-center items-center'>{item.symptons}</p>
-                            <p className='flex justify-center items-center'>{item.diagnosis}</p>
-                            <p className='flex justify-center items-center'>{item.notes}</p>
-                            <p className='flex justify-center items-center'>{new Date(item.etc).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
-                            <div className='flex justify-center items-center'>
-                                {/* <img className='w-10 cursor-pointer' src={assets.cancel_icon} alt="" /> */}
-                                <img onClick={() => { setMedicalRecordId(item.medicalRecordId); setShowPopup(true); }} className='w-10 cursor-pointer' src={assets.details_medical_test_icon} alt="" />
-                            </div>
-                        </div>
-                    ))
-                }
+        <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 py-8'>
+            {/* Header */}
+            <div className='mb-8'>
+                <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 mb-2'>Test Results Pending</h1>
+                <p className='text-gray-600 text-sm'>Add results and notes for medical tests received</p>
             </div>
-            {/* popup update results test */}
+
+            {/* Table Card */}
+            <div className='bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden'>
+                {/* Table Header */}
+                <div className='hidden sm:grid grid-cols-[0.5fr_1.5fr_1.5fr_1.5fr_1fr_2fr_2fr_2fr_2fr_1.5fr] gap-1 py-4 px-6 bg-gray-50 border-b border-gray-200'>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider'>#</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider'>Patient</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider'>Doctor</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Medical Test</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Fees</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Symptoms</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Diagnosis</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Note</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Expected Time</p>
+                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Action</p>
+                </div>
+
+                {/* Table Body */}
+                <div className='max-h-[60vh] overflow-y-auto'>
+                    {
+                        waitingResults.length > 0 ? (
+                            waitingResults.map((item, index) => (
+                                <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-sm sm:grid grid-cols-[0.5fr_1.5fr_1.5fr_1.5fr_1fr_2fr_2fr_2fr_2fr_1.5fr] gap-1 items-center px-6 py-4 border-b border-gray-100 hover:bg-blue-50 transition-colors duration-150' key={index}>
+                                    <p className='max-sm:hidden font-semibold text-gray-600'>{index + 1}</p>
+                                    <div className='flex items-center gap-3'>
+                                        <img className='w-10 h-10 rounded-full ring-2 ring-gray-200' src={item.userData.image} alt="" />
+                                        <p className='font-medium text-gray-900'>{item.userData.name}</p>
+                                    </div>
+                                    <div className='flex items-center gap-3'>
+                                        <img className='w-10 h-10 rounded-full ring-2 ring-gray-200' src={item.doctorData.image} alt="" />
+                                        <p className='font-medium text-gray-900'>{item.doctorData.name}</p>
+                                    </div>
+                                    <p className='max-sm:hidden flex justify-center items-center text-gray-900 font-medium'>{item.medicalTestInfo.name}</p>
+                                    <p className='flex justify-center items-center text-gray-900 font-medium'>
+                                        <NumericFormat
+                                            value={item.medicalTestInfo.price}
+                                            thousandSeparator="."
+                                            decimalSeparator=","
+                                            displayType="text"
+                                            decimalScale={3}
+                                            suffix=" VND"
+                                        />
+                                    </p>
+                                    <p className='flex justify-center items-center text-gray-700 text-sm'>{item.symptons}</p>
+                                    <p className='flex justify-center items-center text-gray-700 text-sm'>{item.diagnosis}</p>
+                                    <p className='flex justify-center items-center text-gray-700 text-sm truncate'>{item.notes}</p>
+                                    <p className='flex justify-center items-center text-gray-700 text-sm'>{new Date(item.etc).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
+                                    <div className='flex justify-center items-center'>
+                                        <button
+                                            onClick={() => { setMedicalRecordId(item.medicalRecordId); setShowPopup(true); }}
+                                            className='p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors'
+                                            title='Add results'
+                                        >
+                                            <img src={assets.details_medical_test_icon} alt="Add Results" className='w-5 h-5' />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className='flex flex-col items-center justify-center py-12 text-gray-500'>
+                                <p className='text-sm font-medium'>No test results pending</p>
+                                <p className='text-xs'>All tests have results assigned</p>
+                            </div>
+                        )
+                    }
+                </div>
+            </div>
+
+            {/* Test Results Popup */}
             {
                 showPopup && (
-                    <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
-                        <div className='bg-white rounded-xl p-6 w-full max-w-2xl shadow-lg animate-fadeIn'>
-                            <p className='text-lg font-semibold text-neutral-800 mb-4'>
-                                Test Results
-                            </p>
+                    <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
+                        <div className='bg-white rounded-2xl w-full max-w-2xl shadow-2xl p-8 max-h-[85vh] overflow-y-auto animate-fadeIn'>
+                            <h2 className='text-2xl font-bold text-gray-900 mb-6'>Add Test Results</h2>
+
                             <form onSubmit={assignDetailsMedicalTest}>
-                                <div className='flex flex-col gap-4'>
-                                    <div className='flex flex-col gap-2'>
-                                        <label className='text-sm font-medium text-gray-700'>Result</label>
+                                <div className='space-y-6'>
+                                    {/* Result Textarea */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-3'>Test Result</label>
                                         <textarea
-                                            className='border rounded-lg px-2 py-2 text-sm resize-none'
-                                            rows='4'
-                                            placeholder='Enter test results...'
+                                            className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none'
+                                            rows='5'
+                                            placeholder='Enter detailed test results...'
                                             value={result}
                                             onChange={(e) => setResult(e.target.value)}
                                             required
                                         ></textarea>
                                     </div>
 
-                                    <div className='flex flex-col gap-2'>
-                                        <label className='text-sm font-medium text-gray-700'>Notes</label>
+                                    {/* Notes Textarea */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-3'>Medical Notes</label>
                                         <textarea
-                                            className='border rounded-lg px-2 py-2 text-sm resize-none'
+                                            className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none'
                                             rows='4'
-                                            placeholder='Enter notes...'
+                                            placeholder='Add any additional notes...'
                                             value={notes}
                                             onChange={(e) => setNotes(e.target.value)}
                                         ></textarea>
                                     </div>
 
-                                    <div className='flex flex-col gap-2'>
-                                        <label className='text-sm font-medium text-gray-700'>Images</label>
-                                        <div className='border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-primary hover:bg-blue-50 transition cursor-pointer'
+                                    {/* File Upload */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-3'>Upload Result Images/Documents</label>
+                                        <div
+                                            className='border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary hover:bg-blue-50 transition cursor-pointer'
                                             onClick={() => document.getElementById('file-input').click()}
                                         >
                                             <input
@@ -144,29 +175,32 @@ const TestingStaffWaitingResults = () => {
                                                 className='hidden'
                                             />
                                             <div className='text-gray-600'>
-                                                <p className='text-sm font-medium'>Click to upload or drag and drop</p>
-                                                <p className='text-xs text-gray-500 mt-1'>PNG, JPG, PDF up to 10MB each</p>
+                                                <p className='text-sm font-bold text-gray-900'>Click to upload or drag and drop</p>
+                                                <p className='text-xs text-gray-500 mt-2'>PNG, JPG, PDF up to 10MB each</p>
                                                 {images.length > 0 && (
-                                                    <p className='text-xs text-primary mt-2 font-semibold'>{images.length} file(s) selected</p>
+                                                    <p className='text-xs text-primary mt-3 font-semibold'>
+                                                        ✓ {images.length} file{images.length !== 1 ? 's' : ''} selected
+                                                    </p>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className='flex justify-end gap-3 mt-6'>
+                                {/* Action Buttons */}
+                                <div className='flex justify-end gap-3 mt-8'>
                                     <button
                                         type="button"
                                         onClick={() => setShowPopup(false)}
-                                        className='px-4 py-2 rounded-lg border text-sm text-gray-600 hover:bg-gray-100 transition cursor-pointer'
+                                        className='px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-all'
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
-                                        className='px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary-dark transition cursor-pointer'
+                                        className='px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-opacity-90 transition-all shadow-sm hover:shadow-md'
                                     >
-                                        Save
+                                        Save Results
                                     </button>
                                 </div>
                             </form>

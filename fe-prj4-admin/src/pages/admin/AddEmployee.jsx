@@ -141,126 +141,251 @@ const AddEmployee = () => {
         : `year${experince > 1 ? 's' : ''}`;
 
     return (
-        <form onSubmit={onSubmitHandler} action="" className='m-5 w-full h-150'>
-            <p className='mb-3 text-2xl font-medium'>Add {state}</p>
-            {
-                state === 'Doctor'
-                    ? <p className='text-left mt-2 mb-1 text-sm text-gray-500'>
-                        Add Testing Staff?
-                        <span
-                            className='cursor-pointer text-primary font-medium hover:underline transition'
-                            onClick={() => setState('Testing Staff')}
-                        >
-                            Click here.
-                        </span>
-                    </p>
-                    : <p className='text-left mt-2 mb-1 text-sm text-gray-500'>
-                        Add Doctor?
-                        <span
-                            className='cursor-pointer text-primary font-medium hover:underline transition'
-                            onClick={() => setState('Doctor')}
-                        >
-                            Click here.
-                        </span>
-                    </p>
-            }
-            <div className='bg-white px-8 py-8 border rounded w-6xl max-w-4xl max-h-[80vh] overflow-y-scroll'>
-                <div className='flex items-center gap-4 mb-8 text-gray-500'>
-                    <label htmlFor={state === 'Doctor' ? "doc-img" : "staff-img"}>
-                        <img className='cursor-pointer w-16 bg-gray-100 rounded-full' src={state === 'Doctor' ? (doctorImage ? URL.createObjectURL(doctorImage) : assets.upload_area) : (testingStaffImage ? URL.createObjectURL(testingStaffImage) : assets.upload_area)} alt="" />
+        <form onSubmit={onSubmitHandler} className='w-full max-w-6xl mx-auto px-4 sm:px-6 py-8'>
+            {/* Header */}
+            <div className='mb-8'>
+                <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 mb-2'>Add {state}</h1>
+                <p className='text-gray-600'>Fill in the form below to add a new {state.toLowerCase()}</p>
+            </div>
+
+            {/* Form Card */}
+            <div className='bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden'>
+                {/* Image Upload Section */}
+                <div className='p-8 border-b border-gray-200 bg-gray-50'>
+                    <label htmlFor={state === 'Doctor' ? "doc-img" : "staff-img"} className='flex items-center gap-6 cursor-pointer group'>
+                        <div className='relative'>
+                            <img
+                                className='w-24 h-24 rounded-xl object-cover ring-4 ring-gray-200 group-hover:ring-primary transition-all duration-300'
+                                src={state === 'Doctor' ? (doctorImage ? URL.createObjectURL(doctorImage) : assets.upload_area) : (testingStaffImage ? URL.createObjectURL(testingStaffImage) : assets.upload_area)}
+                                alt="Profile"
+                            />
+                            <div className='absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-xl transition-colors duration-300 flex items-center justify-center'>
+                                <span className='text-white opacity-0 group-hover:opacity-100 transition-opacity'>Change</span>
+                            </div>
+                        </div>
+                        <div>
+                            <p className='text-lg font-semibold text-gray-900'>Upload {state.toLowerCase()} photo</p>
+                            <p className='text-sm text-gray-600 mt-1'>Click to upload a profile picture (JPG, PNG)</p>
+                        </div>
                     </label>
                     <input onChange={(e) => state === 'Doctor' ? setDoctorImage(e.target.files[0]) : setTestingStaffImage(e.target.files[0])} type="file" id={state === 'Doctor' ? "doc-img" : "staff-img"} hidden />
-                    <p>Upload {state.toLowerCase()} <br /> picture</p>
                 </div>
-                <div className='flex flex-col lg:flex-row items-start gap-10 text-gray-600'>
-                    <div className='w-full lg:flex-1 flex flex-col gap-4'>
-                        <div className='flex-1 flex flex-col gap-1'>
-                            <p>{state} name</p>
-                            <input onChange={(e) => setName(e.target.value)} value={name} className='border rounded px-3 py-2' type="text" placeholder='Name' required />
-                        </div>
-                        <div className='flex-1 flex flex-col gap-1'>
-                            <p>{state} email</p>
-                            <input onChange={(e) => setEmail(e.target.value)} value={email} className='border rounded px-3 py-2' type="email" placeholder='Email' required />
-                        </div>
-                        <div className='flex-1 flex flex-col gap-1'>
-                            <p>{state} password</p>
-                            <input onChange={(e) => setPassword(e.target.value)} value={password} className='border rounded px-3 py-2' type="password" placeholder='Password' required />
-                        </div>
-                        <div className='flex-1 flex flex-col gap-1'>
-                            <p>Experience</p>
-                            <input className='border rounded px-3 py-2' type="number" placeholder='Experience' required min="1" value={experince} onChange={handleChangeExp} />
-                            {/**only display when value > 0 */}
-                            {
-                                experince !== "" && experince > 0 && (
-                                    <span className="text-sm text-gray-500 ml-1 mt-1">{displayYear}</span>
-                                )
-                            }
-                        </div>
-                        {state === 'Doctor' && (
-                            <div className='flex-1 flex flex-col gap-1'>
-                                <p>Fees</p>
-                                <NumericFormat thousandSeparator="." decimalSeparator="," decimalScale={3} fixedDecimalScale={false} className='border rounded px-3 py-2' value={fees} allowNegative={false} onValueChange={(values) => {
-                                    const rawValue = Number(values.value);
-                                    if (rawValue > 5_000_000) {
-                                        toast.warn("Fees have to be less than 5.000.000 VNĐ")
-                                        return;
-                                    }
-                                    setFees(values.value);
-                                }}
-                                    placeholder='VNĐ' required min="1" id='fees' />
+
+                {/* Form Fields */}
+                <div className='p-8'>
+                    <div className='flex flex-col lg:flex-row gap-12'>
+                        {/* Left Column */}
+                        <div className='flex-1 space-y-6'>
+                            {/* Employee Type */}
+                            <div>
+                                <label className='block text-sm font-bold text-gray-800 mb-2'>Employee Type</label>
+                                <select
+                                    onChange={(e) => setState(e.target.value)}
+                                    value={state}
+                                    className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                >
+                                    <option value="Doctor">Doctor</option>
+                                    <option value="Testing Staff">Testing Staff</option>
+                                </select>
                             </div>
-                        )}
-                    </div>
-                    <div className='w-full lg:flex-1 flex flex-col gap-4'>
-                        {state === 'Doctor' ? (
-                            <>
-                                <div className='flex-1 flex flex-col gap-1'>
-                                    <p>Speciality</p>
-                                    <select onChange={(e) => setSpeciality(e.target.value)} value={speciality} className='border rounded px-3 py-2' name="" id="">
-                                        <option value="General physician">General physician</option>
-                                        <option value="Gynecologist">Gynecologist</option>
-                                        <option value="Dermatologist">Dermatologist</option>
-                                        <option value="Pediatricians">Pediatricians</option>
-                                        <option value="Neurologist">Neurologist</option>
-                                        <option value="Gastroenterologist">Gastroenterologist</option>
-                                    </select>
+
+                            {/* Name */}
+                            <div>
+                                <label className='block text-sm font-bold text-gray-800 mb-2'>{state} Name</label>
+                                <input
+                                    onChange={(e) => setName(e.target.value)}
+                                    value={name}
+                                    className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                    type="text"
+                                    placeholder='Enter full name'
+                                    required
+                                />
+                            </div>
+
+                            {/* Email */}
+                            <div>
+                                <label className='block text-sm font-bold text-gray-800 mb-2'>{state} Email</label>
+                                <input
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    value={email}
+                                    className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                    type="email"
+                                    placeholder='Enter email address'
+                                    required
+                                />
+                            </div>
+
+                            {/* Password */}
+                            <div>
+                                <label className='block text-sm font-bold text-gray-800 mb-2'>{state} Password</label>
+                                <input
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    value={password}
+                                    className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                    type="password"
+                                    placeholder='Enter secure password'
+                                    required
+                                />
+                            </div>
+
+                            {/* Experience */}
+                            <div>
+                                <label className='block text-sm font-bold text-gray-800 mb-2'>Experience</label>
+                                <input
+                                    className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                    type="number"
+                                    placeholder='Enter experience in years'
+                                    required
+                                    min="0"
+                                    value={experince}
+                                    onChange={handleChangeExp}
+                                />
+                                {experince !== "" && experince > 0 && (
+                                    <span className="text-xs font-medium text-primary ml-1 mt-2 block">{displayYear}</span>
+                                )}
+                            </div>
+
+                            {/* Fees (Doctor only) */}
+                            {state === 'Doctor' && (
+                                <div>
+                                    <label className='block text-sm font-bold text-gray-800 mb-2'>Consultation Fees</label>
+                                    <NumericFormat
+                                        thousandSeparator="."
+                                        decimalSeparator=","
+                                        decimalScale={3}
+                                        fixedDecimalScale={false}
+                                        className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                        value={fees}
+                                        allowNegative={false}
+                                        onValueChange={(values) => {
+                                            const rawValue = Number(values.value);
+                                            if (rawValue > 5_000_000) {
+                                                toast.warn("Fees must be less than 5,000,000 VNĐ")
+                                                return;
+                                            }
+                                            setFees(values.value);
+                                        }}
+                                        placeholder='Enter fees in VNĐ'
+                                        required
+                                    />
                                 </div>
-                                <div className='flex-1 flex flex-col gap-1'>
-                                    <p>Education</p>
-                                    <input onChange={(e) => setDegree(e.target.value)} value={degree} className='border rounded px-3 py-2' type="text" placeholder='Education' required />
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className='flex-1 flex flex-col gap-1'>
-                                    <p>Department</p>
-                                    <select onChange={(e) => setDepartment(e.target.value)} value={department} className='border rounded px-3 py-2' name="" id="">
-                                        <option value="Hematology">Hematology</option>
-                                        <option value="Biochemistry">Biochemistry</option>
-                                        <option value="Microbiology">Microbiology</option>
-                                        <option value="Parasitology">Parasitology</option>
-                                        <option value="Molecular Biology">Molecular Biology</option>
-                                        <option value="Diagnostic Imaging">Diagnostic Imaging</option>
-                                    </select>
-                                </div>
-                                <div className='flex-1 flex flex-col gap-1'>
-                                    <p>Qualification</p>
-                                    <input onChange={(e) => setQualification(e.target.value)} value={qualification} className='border rounded px-3 py-2' type="text" placeholder='Qualification' required />
-                                </div>
-                            </>
-                        )}
-                        <div className='flex-1 flex flex-col gap-1'>
-                            <p>Address</p>
-                            <input onChange={(e) => setAddress1(e.target.value)} value={address1} className='border rounded px-3 py-2' type="text" placeholder='Address 1' required />
-                            <input onChange={(e) => setAddress2(e.target.value)} value={address2} className='border rounded px-3 py-2' type="text" placeholder='Address 2' required />
+                            )}
+                        </div>
+
+                        {/* Right Column */}
+                        <div className='flex-1 space-y-6'>
+                            {state === 'Doctor' ? (
+                                <>
+                                    {/* Speciality */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-2'>Speciality</label>
+                                        <select
+                                            onChange={(e) => setSpeciality(e.target.value)}
+                                            value={speciality}
+                                            className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                        >
+                                            <option value="General physician">General physician</option>
+                                            <option value="Gynecologist">Gynecologist</option>
+                                            <option value="Dermatologist">Dermatologist</option>
+                                            <option value="Pediatricians">Pediatricians</option>
+                                            <option value="Neurologist">Neurologist</option>
+                                            <option value="Gastroenterologist">Gastroenterologist</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Education */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-2'>Qualification/Degree</label>
+                                        <input
+                                            onChange={(e) => setDegree(e.target.value)}
+                                            value={degree}
+                                            className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                            type="text"
+                                            placeholder='e.g. MBBS, MD'
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Department */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-2'>Department</label>
+                                        <select
+                                            onChange={(e) => setDepartment(e.target.value)}
+                                            value={department}
+                                            className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                        >
+                                            <option value="Hematology">Hematology</option>
+                                            <option value="Biochemistry">Biochemistry</option>
+                                            <option value="Microbiology">Microbiology</option>
+                                            <option value="Parasitology">Parasitology</option>
+                                            <option value="Molecular Biology">Molecular Biology</option>
+                                            <option value="Diagnostic Imaging">Diagnostic Imaging</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Qualification */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-2'>Qualification</label>
+                                        <input
+                                            onChange={(e) => setQualification(e.target.value)}
+                                            value={qualification}
+                                            className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                            type="text"
+                                            placeholder='e.g. BSc, MSc'
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Address */}
+                            <div>
+                                <label className='block text-sm font-bold text-gray-800 mb-2'>Address</label>
+                                <input
+                                    onChange={(e) => setAddress1(e.target.value)}
+                                    value={address1}
+                                    className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all mb-2'
+                                    type="text"
+                                    placeholder='Street address'
+                                    required
+                                />
+                                <input
+                                    onChange={(e) => setAddress2(e.target.value)}
+                                    value={address2}
+                                    className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                    type="text"
+                                    placeholder='City/District'
+                                    required
+                                />
+                            </div>
                         </div>
                     </div>
+
+                    {/* About Section */}
+                    <div className='mt-8 pt-8 border-t border-gray-200'>
+                        <label className='block text-sm font-bold text-gray-800 mb-3'>About {state}</label>
+                        <textarea
+                            onChange={(e) => setAbout(e.target.value)}
+                            value={about}
+                            className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none'
+                            placeholder={`Write a brief bio about the ${state.toLowerCase()}...`}
+                            rows={5}
+                            required
+                        ></textarea>
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className='mt-8 flex justify-end'>
+                        <button
+                            type='submit'
+                            className='px-8 py-3 bg-primary text-white font-bold rounded-lg hover:bg-opacity-90 transition-all shadow-md hover:shadow-lg'
+                        >
+                            Add {state}
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <p className='mt-4 mb-2'>About {state}</p>
-                    <textarea onChange={(e) => setAbout(e.target.value)} value={about} className='w-full px-4 pt-2 border rounded' placeholder={`Write about ${state.toLowerCase()}...`} rows={5} required></textarea>
-                </div>
-                <button type='submit' className='bg-primary px-10 py-3 mt-4 text-white rounded-full cursor-pointer'>Add {state}</button>
             </div>
         </form>
     )

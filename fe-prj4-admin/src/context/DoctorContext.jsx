@@ -104,9 +104,13 @@ const DoctorContextProvider = ({ children }) => {
     }
   }
 
-  const getWaitingPatients = async () => {
+  const getWaitingPatients = async (date = null) => {
     try {
-      const { data } = await axios.get(`${backendDocUrl}/waiting-patients`, { headers: { dToken } });
+      let url = `${backendDocUrl}/waiting-patients`;
+      if (date) {
+        url += `?date=${date}`;
+      }
+      const { data } = await axios.get(url, { headers: { dToken } });
       if (data.success) {
         setWaitingPatients(data.waitingPatients);
         console.log(data.waitingPatients);
@@ -130,6 +134,7 @@ const DoctorContextProvider = ({ children }) => {
     setDashData,
     getDashData,
     profileData,
+    doctorData: profileData,
     setProfileData,
     getProfileData,
     medicines,

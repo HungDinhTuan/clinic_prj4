@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema({
     userId: { type: String, require: true },
+    userIdNotSign: { type: String, default: null },
+    userDataNotSign: { type: Object, default: null },
     docId: { type: String, require: true },
     slotDate: { type: String, require: true },
     slotTime: { type: String, require: true },
@@ -13,7 +15,7 @@ const appointmentSchema = new mongoose.Schema({
     payment: { type: Boolean, default: false },
     isCompleted: {
         type: String,
-        enum: ['pending', 'in-tests', 'tests-done', 'completed','cancelled'],
+        enum: ['pending', 'in-tests', 'tests-done', 'completed', 'cancelled'],
         default: 'pending'
     }
 });

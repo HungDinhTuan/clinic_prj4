@@ -8,10 +8,12 @@ const Home = () => {
   return (
     <div>
       <Header />
-      <BookAppointment />
-      <SpecialityMenu />
-      <TopDoctors />
-      <Banner />
+      <div className='px-4 md:px-10 lg:px-20 mt-8'>
+        <BookAppointment />
+        <SpecialityMenu />
+        <TopDoctors />
+        <Banner />
+      </div>
     </div>
   )
 }

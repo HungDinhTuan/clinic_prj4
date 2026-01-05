@@ -30,12 +30,12 @@ const App = () => {
 
   return aToken || dToken || tToken ?
     (
-      <div className='bg-[#F8F9FD]'>
+      <div className='bg-[#F8F9FD] dark:bg-gray-950 h-screen flex flex-col'>
         <ToastContainer />
         <Navbar />
-        <div className='flex min-h-[calc(100vh-80px)]'>
+        <div className='flex flex-1 min-h-[calc(100vh-96px)] overflow-hidden'>
           <Sidebar />
-          <div className='flex-1 px-6 py-6'>
+          <div className='flex-1 px-6 py-6 dark:bg-gray-950 overflow-y-auto'>
             <Routes>
               {/* Admin route */}
               <Route path='/' element={<></>} />
@@ -59,7 +59,7 @@ const App = () => {
         </div>
       </div>
     ) : (
-      <div className='bg-[#F8F9FD]'>
+      <div className='bg-[#F8F9FD] dark:bg-gray-950'>
         <ToastContainer />
         <Login />
       </div>

@@ -8,6 +8,7 @@ import userModel from '../models/userModel.js'
 import medicineModel from '../models/medicineModel.js'
 import medicalTestModel from '../models/medicalTestModel.js'
 import testingStaffModel from '../models/testingStaffModel.js'
+import { uploadToCloudinary } from '../utils/cloudinaryUpload.js'
 
 //api for adding doctor
 const addDoctor = async (req, res) => {
@@ -43,8 +44,8 @@ const addDoctor = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // upload image to cloudinary
-        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
+        // upload image to cloudinary using streamifier
+        const imageUpload = await uploadToCloudinary(imageFile.buffer, imageFile.originalname, { resource_type: "image" });
         const imageUrl = imageUpload.secure_url
 
         const doctorData = {
@@ -193,10 +194,10 @@ const adminDashboard = async (req, res) => {
         const appointments = await appointmentModel.find({ cancelled: false });
 
         const dashData = {
-            doctors : doctors.length,
-            appointments : appointments.length,
-            users : users.length,
-            lastestAppointments : appointments.reverse().slice(0,5)
+            doctors: doctors.length,
+            appointments: appointments.length,
+            users: users.length,
+            lastestAppointments: appointments.reverse().slice(0, 5)
         }
 
         res.json({
@@ -299,7 +300,7 @@ const pagingMedicines = async (req, res) => {
 // api edit medicine
 const editMedicine = async (req, res) => {
     try {
-        const {id, name, genericName, category, form, manufacturer, description, indications, contraindications, sideEffects } = req.body;
+        const { id, name, genericName, category, form, manufacturer, description, indications, contraindications, sideEffects } = req.body;
 
         const updatedMedicine = await medicineModel.findByIdAndUpdate(id, {
             name,
@@ -343,7 +344,7 @@ const findMedicineById = async (req, res) => {
                 success: false,
                 message: "Medicine not found"
             });
-        }   
+        }
         return res.json({
             success: true,
             medicine
@@ -361,7 +362,7 @@ const findMedicineById = async (req, res) => {
 const deleteMedicine = async (req, res) => {
     try {
         const { id } = req.body;
-        const deletedMedicine = await medicineModel.findByIdAndDelete(id);  
+        const deletedMedicine = await medicineModel.findByIdAndDelete(id);
 
         if (!deletedMedicine) {
             return res.status(404).json({
@@ -386,7 +387,7 @@ const deleteMedicine = async (req, res) => {
 // api to add a medical test
 const addMedicalTest = async (req, res) => {
     try {
-        const {name, description, fees, category, preparation, turnaroundTime, unit, normalRange} = req.body;
+        const { name, description, fees, category, preparation, turnaroundTime, unit, normalRange } = req.body;
 
         if (!name || !fees || !category) {
             return res.status(403).json({
@@ -468,7 +469,7 @@ const pagingMedicalTests = async (req, res) => {
 // edit medical test
 const editMedicalTest = async (req, res) => {
     try {
-        const {id, name, description, fees, category, preparation, turnaroundTime, unit, normalRange} = req.body;
+        const { id, name, description, fees, category, preparation, turnaroundTime, unit, normalRange } = req.body;
 
         const updatedTest = await medicalTestModel.findByIdAndUpdate(id, {
             name,
@@ -542,7 +543,7 @@ const deleteMedicalTest = async (req, res) => {
         });
     } catch (e) {
         console.log(e)
-        return res.status(400).json({           
+        return res.status(400).json({
             success: false,
             message: e.message
         });
@@ -562,14 +563,14 @@ const addTestingStaff = async (req, res) => {
             });
         }
 
-        if(!validator.isEmail(email)) {
+        if (!validator.isEmail(email)) {
             return res.status(405).json({
                 success: false,
                 message: "Please enter a valid email."
             });
         }
 
-        if(password.length < 8) {
+        if (password.length < 8) {
             return res.status(403).json({
                 success: false,
                 message: "Password has been length than 8 characters."
@@ -579,7 +580,7 @@ const addTestingStaff = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
+        const imageUpload = await uploadToCloudinary(imageFile.buffer, imageFile.originalname, { resource_type: "image" });
         const imageUrl = imageUpload.secure_url;
 
         const testingStaffData = {

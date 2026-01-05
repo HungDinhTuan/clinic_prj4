@@ -10,7 +10,10 @@ import { NumericFormat } from 'react-number-format'
 const Appointment = () => {
 
   const { docId } = useParams();
-  const { doctors, backendURL, token, getDoctorsData } = useContext(AppContext);
+  const { doctors, backendURL, token, getDoctorsData, userData, loadUserProfileData } = useContext(AppContext);
+  console.log(userData);
+  
+
   const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
   const navigate = useNavigate();
@@ -27,6 +30,17 @@ const Appointment = () => {
   const [selectedFromMore, setSelectedFromMore] = useState(false);
   const [pickerMonth, setPickerMonth] = useState(new Date().getMonth());
   const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+  const [bookForAnother, setBookForAnother] = useState(false);
+  const [userNotSigned, setUserNotSigned] = useState({
+    name: '',
+    email: '',
+    gender: '',
+    birthday: '',
+    phone: '',
+    address1: '',
+    address2: '',
+    relationship: ''
+  });
   const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   const fetchDocInfo = async () => {
@@ -175,6 +189,13 @@ const Appointment = () => {
   const bookAppointment = async () => {
     if (!token) {
       toast.warn('Login to book appointment.')
+      localStorage.setItem('pendingDocId', docId);
+      localStorage.setItem('pendingSlotIndex', slotIndex.toString());
+      localStorage.setItem('pendingSlotTime', slotTime);
+      localStorage.setItem('pendingCustomDate', customDate);
+      localStorage.setItem('pendingUserNotSigned', JSON.stringify(userNotSigned));
+      localStorage.setItem('pendingBookForAnother', JSON.stringify(bookForAnother));
+      localStorage.setItem('redirectAfterLogin', `/appointment/${docId}`);
       return navigate('/login');
     }
 
@@ -187,13 +208,48 @@ const Appointment = () => {
 
       const slotDate = day + "_" + month + "_" + year;
 
+      // Prepare request body with required fields
+      const requestBody = {
+        docId,
+        slotDate,
+        slotTime
+      };
+
+      // Add non-signed user data if booking for another
+      if (bookForAnother) {
+        const addressStr = JSON.stringify({
+          line1: userNotSigned.address1,
+          line2: userNotSigned.address2
+        });
+        Object.assign(requestBody, {
+          name: userNotSigned.name,
+          email: userNotSigned.email,
+          phone: userNotSigned.phone,
+          gender: userNotSigned.gender,
+          dob: userNotSigned.birthday,
+          address: addressStr,
+          relationship: userNotSigned.relationship
+        });
+      }
+
       const { data } = await axios.post(`${backendURL}/user/booking-appointment`,
-        { docId, slotDate, slotTime },
+        requestBody,
         { headers: { token } })
 
       if (data.success) {
         toast.success(data.message);
         getDoctorsData();
+        setBookForAnother(false);
+        setUserNotSigned({
+          name: '',
+          email: userData?.email || '',
+          gender: '',
+          birthday: '',
+          phone: userData?.phone || '',
+          address1: '',
+          address2: '',
+          relationship: ''
+        });
         navigate('/my-appointments');
       } else {
         toast.error(data.message)
@@ -207,6 +263,12 @@ const Appointment = () => {
   useEffect(() => {
     fetchDocInfo();
   }, [docId, doctors]);
+
+  useEffect(() => {
+    if (token && (!userData || Object.keys(userData).length === 0)) {
+      loadUserProfileData();
+    }
+  }, [token]);
 
   useEffect(() => {
     getAvailableSlots();
@@ -223,46 +285,267 @@ const Appointment = () => {
     }
   }, [slotIndex]);
 
+  // restore pending data after login
+  useEffect(() => {
+    if (token && docSlots.length > 0) {
+      const savedDocId = localStorage.getItem('pendingDocId');
+      const savedSlotIndexStr = localStorage.getItem('pendingSlotIndex');
+      const savedSlotTime = localStorage.getItem('pendingSlotTime');
+      const savedCustomDate = localStorage.getItem('pendingCustomDate');
+      const savedUserNotSigned = localStorage.getItem('pendingUserNotSigned');
+      const savedBookForAnother = localStorage.getItem('pendingBookForAnother');
+
+      if (!savedSlotIndexStr && !savedSlotTime && !savedCustomDate && !savedUserNotSigned && !savedBookForAnother) return;
+
+      // restore saved slot time and date
+      if (savedSlotIndexStr) {
+        const savedIndex = Number(savedSlotIndexStr);
+        if (docSlots[savedIndex] && docSlots[savedIndex].length > 0) {
+          setSlotIndex(savedIndex);
+
+          if (savedSlotTime) {
+            const isValidTime = docSlots[savedIndex].some(slot => slot.time === savedSlotTime);
+            if (isValidTime) {
+              setSlotTime(savedSlotTime);
+            } else {
+              setSlotTime('');
+            }
+          }
+        }
+      } else if (savedSlotTime) {
+        // time only save, check current date
+        const currentDateSlots = docSlots[slotIndex];
+        if (currentDateSlots?.some(slot => slot.time === savedSlotTime)) {
+          setSlotTime(savedSlotTime);
+        }
+      }
+
+      // restore saved customDate
+      if (savedCustomDate) {
+        setCustomDate(savedCustomDate);
+        setSelectedFromMore(true);
+      }
+
+      // restore saved userNotSigned and bookForAnother
+      if (savedUserNotSigned) {
+        try {
+          const parsedUserNotSigned = JSON.parse(savedUserNotSigned);
+          setUserNotSigned(parsedUserNotSigned);
+        } catch (error) {
+          console.log('Error parsing userNotSigned:', error);
+        }
+      }
+
+      if (savedBookForAnother) {
+        try {
+          const parsedBookForAnother = JSON.parse(savedBookForAnother);
+          setBookForAnother(parsedBookForAnother);
+        } catch (error) {
+          console.log('Error parsing bookForAnother:', error);
+        }
+      }
+
+      // clear saved data
+      localStorage.removeItem('pendingDocId');
+      localStorage.removeItem('pendingSlotIndex');
+      localStorage.removeItem('pendingSlotTime');
+      localStorage.removeItem('pendingCustomDate');
+      localStorage.removeItem('pendingUserNotSigned');
+      localStorage.removeItem('pendingBookForAnother');
+      localStorage.removeItem('redirectAfterLogin');
+    }
+  }, [token, docSlots.length]);
+
   return docInfo && (
-    <div>
+    <div className='pt-5'>
       {/*---------------Doctor Details--------------- */}
-      <div className='flex flex-col sm:flex-row gap-4'>
+      <div className='flex flex-col sm:flex-row gap-6 px-4 sm:px-0'>
         <div>
-          <img className='bg-primary w-full sm:max-w-72 rounded-lg' src={docInfo?.image} alt="" />
+          <img className='bg-primary w-full sm:max-w-72 rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300' src={docInfo?.image} alt={docInfo?.name} />
         </div>
-        <div className='flex-1 border border-gray-400 rounded-lg p-8 py-7 bg-white mx-2 sm:mx-0 mt-[-80px] sm:mt-0'>
+        <div className='flex-1 border border-gray-200 rounded-2xl p-8 py-8 bg-white sm:mt-0 shadow-lg hover:shadow-xl transition-shadow duration-300'>
           {/*---------------Doctor Info : name, degree, speciality, experience--------------- */}
-          <p className='flex items-center gap-2 text-2xl font-medium text-gray-900'>
+          <p className='flex items-center gap-2 text-3xl font-bold text-gray-900'>
             {docInfo?.name}
-            <img className='w-5' src={assets.verified_icon} alt="" />
+            <img className='w-5' src={assets.verified_icon} alt="Verified" />
           </p>
-          <div className='flex items-center gap-2 text-sm mt-1 text-gray-600'>
-            <p>{docInfo?.degree} - {docInfo?.speciality}</p>
-            <button className='py-0.5 px-2 border text-xs rounded-full'>{docInfo?.experience}</button>
+          <div className='flex items-center gap-2 text-sm mt-3 text-gray-600'>
+            <p className='font-medium'>{docInfo?.degree} - {docInfo?.speciality}</p>
+            <button className='py-1 px-3 border border-gray-300 text-xs rounded-full font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors duration-300'>{docInfo?.experience}</button>
           </div>
           {/*---------------Doctor Abouts--------------- */}
-          <div>
-            <p className='flex items-center gap-1 text-sm font-medium text-gray-900 mt-3'>
-              About <img src={assets.info_icon} alt="" />
+          <div className='mt-6 pt-6 border-t border-gray-200'>
+            <p className='flex items-center gap-2 text-sm font-bold text-gray-900 mb-3'>
+              <img src={assets.info_icon} alt="" />
+              About
             </p>
-            <p className='text-sm text-gray-500 max-w-[700px] mt-1'>{docInfo?.about}</p>
+            <p className='text-sm text-gray-600 max-w-[700px] leading-relaxed'>{docInfo?.about}</p>
           </div>
-          <p className='text-gray-500 font-medium mt-4'>
+          <p className='text-gray-700 font-semibold mt-6'>
             Appointment fee:&#160;
-            <span className='text-gray-800'>
+            <span className='text-primary text-lg'>
               <NumericFormat
                 value={docInfo?.fees}
                 thousandSeparator="."
                 decimalSeparator=","
                 displayType="text"
-                decimalScale={3} /> VND.</span>
+                decimalScale={3} /> VND</span>
           </p>
         </div>
       </div>
       {/*---------------Booking Slots--------------- */}
-      <div className='sm:ml-72 sm:pl-4 mt-4 font-medium text-gray-700'>
-        <p className="text-lg mb-2">Select Date </p>
-        <div className='grid grid-cols-7 gap-4 mt-4 relative'>
+      <div className='sm:ml-72 sm:pl-4 mt-10 font-medium text-gray-700 px-4 sm:px-0'>
+        <div className='mb-6 flex items-center justify-between gap-4'>
+          <p className="text-2xl font-bold text-gray-900">Select Date </p>
+          {/* Book for Another */}
+          {
+            bookForAnother
+              ? (
+                <button
+                  className="text-red-500 font-medium hover:text-red-700 transition duration-200 whitespace-nowrap text-sm sm:text-base cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setBookForAnother(false);
+                    setUserNotSigned({
+                      name: '',
+                      email: userData?.email || '',
+                      gender: '',
+                      birthday: '',
+                      phone: userData?.phone || '',
+                      address1: '',
+                      address2: '',
+                      relationship: ''
+                    });
+                  }}
+                >
+                  - Cancel
+                </button>
+              )
+              : (
+                <button
+                  className="text-primary font-medium hover:text-primary-dark transition duration-200 whitespace-nowrap text-sm sm:text-base cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setBookForAnother(true);
+                    setUserNotSigned({
+                      name: '',
+                      email: '',
+                      gender: '',
+                      birthday: '',
+                      phone: '',
+                      address1: '',
+                      address2: '',
+                      relationship: ''
+                    });
+                  }}
+                >
+                  + Book for Another
+                </button>
+              )
+          }
+        </div>
+        {/* Patient Information Form */}
+        {
+          bookForAnother && (
+            <div className='mb-6 p-6 border-2 border-blue-200 rounded-lg bg-white shadow-sm mx-4 sm:mx-0'>
+              <p className='font-semibold text-gray-800 mb-4 text-lg'>📋 Enter Patient's Information</p>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-5'>
+                <div>
+                  <label className='block text-sm font-semibold text-gray-800 mb-2'>👤 Full Name</label>
+                  <input
+                    type='text'
+                    required
+                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                    placeholder='Enter full name'
+                    onChange={(e) => setUserNotSigned({ ...userNotSigned, name: e.target.value })}
+                    value={userNotSigned.name}
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-semibold text-gray-800 mb-2'>🎂 Date of Birth</label>
+                  <input
+                    type='date'
+                    required
+                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                    onChange={(e) => setUserNotSigned({ ...userNotSigned, birthday: e.target.value })}
+                    value={userNotSigned.birthday}
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-semibold text-gray-800 mb-2'>📧 Email</label>
+                  <input
+                    type='email'
+                    required
+                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                    placeholder='Enter email address'
+                    onChange={(e) => setUserNotSigned({ ...userNotSigned, email: e.target.value })}
+                    value={userNotSigned.email}
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-semibold text-gray-800 mb-2'>📞 Phone Number</label>
+                  <input
+                    type='tel'
+                    required
+                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                    placeholder='Enter phone number'
+                    onChange={(e) => setUserNotSigned({ ...userNotSigned, phone: e.target.value })}
+                    value={userNotSigned.phone}
+                  />
+                </div>
+                <div className='md:col-span-2'>
+                  <label className='block text-sm font-semibold text-gray-800 mb-2'>🏠 Address</label>
+                  <input
+                    type='text'
+                    required
+                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition mb-2'
+                    placeholder='Street address'
+                    onChange={(e) => setUserNotSigned({ ...userNotSigned, address1: e.target.value })}
+                    value={userNotSigned.address1}
+                  />
+                  <input
+                    type='text'
+                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                    placeholder='City, province (optional)'
+                    onChange={(e) => setUserNotSigned({ ...userNotSigned, address2: e.target.value })}
+                    value={userNotSigned.address2}
+                  />
+                </div>
+                <div>
+                  <label className='block text-sm font-semibold text-gray-800 mb-2'>👥 Gender</label>
+                  <select
+                    required
+                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white cursor-pointer'
+                    onChange={(e) => setUserNotSigned({ ...userNotSigned, gender: e.target.value })}
+                    value={userNotSigned.gender}
+                  >
+                    <option value=''>-- Select Gender --</option>
+                    <option value='Male'>Male</option>
+                    <option value='Female'>Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label className='block text-sm font-semibold text-gray-800 mb-2'>📱 Relationship</label>
+                  <select
+                    required
+                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white cursor-pointer'
+                    onChange={(e) => setUserNotSigned({ ...userNotSigned, relationship: e.target.value })}
+                    value={userNotSigned.relationship}
+                  >
+                    <option value=''>-- Select Relationship --</option>
+                    <option value='Parent'>Parent</option>
+                    <option value='Sibling'>Sibling</option>
+                    <option value='Spouse'>Spouse</option>
+                    <option value='Child'>Child</option>
+                    <option value='Relative'>Relative</option>
+                    <option value='Friend'>Friend</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )
+        }
+        <div className='grid grid-cols-7 gap-3 mt-4 relative'>
           {
             docSlots.length && docSlots.slice(0, 6).map((item, index) => (
               item.length > 0 && (
@@ -273,7 +556,7 @@ const Appointment = () => {
                     setShowDatePicker(false);
                     setSelectedFromMore(false);
                   }}
-                  className={`text-center py-4 px-2 rounded-lg cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md ${slotIndex === index && !customDate ? 'bg-primary text-white hover:bg-primary-dark' : 'border border-gray-300 bg-white hover:bg-gray-50'}`}
+                  className={`text-center py-4 px-2 rounded-xl cursor-pointer transition-all duration-300 shadow-md hover:shadow-lg ${slotIndex === index && !customDate ? 'bg-primary text-white shadow-lg' : 'border border-gray-200 bg-white hover:bg-blue-50'}`}
                   key={index}
                 >
                   <p className='font-semibold'>{daysOfWeek[item[0].datetime.getDay()]}</p>
@@ -288,7 +571,7 @@ const Appointment = () => {
             <>
               <button
                 onClick={() => setShowDatePicker(!showDatePicker)}
-                className={`text-center py-4 px-2 rounded-lg cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md ${customDate && selectedFromMore ? 'bg-primary text-white hover:bg-primary-dark' : 'border border-gray-300 bg-white hover:bg-gray-50'}`}
+                className={`text-center py-4 px-2 rounded-xl cursor-pointer transition-all duration-300 shadow-md hover:shadow-lg ${customDate && selectedFromMore ? 'bg-primary text-white shadow-lg' : 'border border-gray-200 bg-white hover:bg-blue-50'}`}
               >
                 {customDate && selectedFromMore ? (
                   <>
@@ -308,7 +591,7 @@ const Appointment = () => {
 
               {/* Calendar Picker Dropdown */}
               {showDatePicker && (
-                <div className="absolute top-full left-0 right-0 mt-2 z-20 bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+                <div className="absolute top-full left-0 right-0 mt-2 z-20 bg-white border border-gray-200 rounded-2xl shadow-2xl p-6">
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-4">
                       <button
@@ -320,11 +603,11 @@ const Appointment = () => {
                             setPickerMonth(pickerMonth - 1);
                           }
                         }}
-                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                        className="text-sm font-semibold text-gray-700 hover:text-primary px-3 py-1 rounded-lg hover:bg-blue-50 transition-all duration-300"
                       >
                         ← Prev
                       </button>
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-lg font-bold text-gray-900">
                         {month[pickerMonth]} {pickerYear}
                       </span>
                       <button
@@ -336,23 +619,23 @@ const Appointment = () => {
                             setPickerMonth(pickerMonth + 1);
                           }
                         }}
-                        className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                        className="text-sm font-semibold text-gray-700 hover:text-primary px-3 py-1 rounded-lg hover:bg-blue-50 transition-all duration-300"
                       >
                         Next →
                       </button>
                     </div>
 
                     {/* Days of week headers */}
-                    <div className="grid grid-cols-7 gap-1 mb-2">
+                    <div className="grid grid-cols-7 gap-2 mb-3">
                       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                        <div key={day} className="text-center text-xs font-semibold text-gray-600">
+                        <div key={day} className="text-center text-xs font-bold text-gray-700">
                           {day}
                         </div>
                       ))}
                     </div>
 
                     {/* Calendar days */}
-                    <div className="grid grid-cols-7 gap-1">
+                    <div className="grid grid-cols-7 gap-2">
                       {generateCalendarDays().map((day, idx) => {
                         const dayDate = day ? new Date(pickerYear, pickerMonth, day) : null;
                         const today = new Date();
@@ -371,11 +654,11 @@ const Appointment = () => {
                             key={idx}
                             onClick={() => handleDateSelect(day)}
                             disabled={isDisabled}
-                            className={`p-2 text-sm rounded transition-colors ${!day ? 'bg-transparent cursor-default' :
-                              isSelected ? 'bg-primary text-white font-medium' :
+                            className={`p-2 text-sm rounded-lg transition-all duration-300 font-medium ${!day ? 'bg-transparent cursor-default' :
+                              isSelected ? 'bg-primary text-white shadow-md' :
                                 isDisabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
-                                  isToday ? 'bg-blue-100 text-blue-900 font-medium' :
-                                    'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                  isToday ? 'bg-blue-100 text-primary border border-blue-300 shadow-sm' :
+                                    'bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-300'
                               }`}
                           >
                             {day}
@@ -390,16 +673,16 @@ const Appointment = () => {
           )}
         </div>
 
-        <p className="text-lg mt-8 mb-3">
+        <p className="text-2xl font-bold text-gray-900 mt-10 mb-6">
           Select Time
         </p>
-        <div className='grid grid-cols-7 gap-4 mt-6'>
+        <div className='grid grid-cols-7 gap-3 mt-4'>
           {
             docSlots.length && docSlots[slotIndex].slice(0, 6).map((item, index) => (
               <div
                 onClick={() => setSlotTime(item.time)}
                 key={index}
-                className={`text-sm font-medium px-6 py-3 rounded-lg cursor-pointer text-center transition-all duration-200 shadow-sm hover:shadow-md ${item.time === slotTime ? 'bg-primary text-white hover:bg-primary-dark' : 'border border-gray-300 bg-white hover:bg-gray-50'}`}
+                className={`text-sm font-semibold px-4 py-3 rounded-lg cursor-pointer text-center transition-all duration-300 shadow-md hover:shadow-lg ${item.time === slotTime ? 'bg-primary text-white shadow-lg' : 'border border-gray-200 bg-white hover:bg-blue-50'}`}
               >
                 {item.time.toLowerCase()}
               </div>
@@ -411,14 +694,14 @@ const Appointment = () => {
             <div className="relative">
               <button
                 onClick={() => setExpandMoreTimes(!expandMoreTimes)}
-                className={`w-full text-sm font-medium px-3 py-3 rounded-lg cursor-pointer transition-all duration-200 text-center ${slotTime && selectedFromMore ? 'bg-primary text-white hover:bg-primary-dark' : 'border border-gray-300 bg-white hover:bg-gray-50 text-gray-700'}`}
+                className={`w-full text-sm font-semibold px-3 py-3 rounded-lg cursor-pointer transition-all duration-300 text-center shadow-md hover:shadow-lg ${slotTime && selectedFromMore ? 'bg-primary text-white shadow-lg' : 'border border-gray-200 bg-white hover:bg-blue-50 text-gray-700'}`}
               >
                 {slotTime && selectedFromMore ? slotTime.toLowerCase() : 'More times'}
               </button>
 
               {/* Dropdown Menu */}
               {expandMoreTimes && (
-                <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
+                <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
                   <div className="max-h-60 overflow-y-auto">
                     {docSlots[slotIndex].slice(6).map((item, index) => (
                       <button
@@ -428,7 +711,7 @@ const Appointment = () => {
                           setExpandMoreTimes(false);
                           setSelectedFromMore(true);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${item.time === slotTime ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        className={`w-full text-left px-4 py-3 text-sm font-medium transition-all duration-300 ${item.time === slotTime ? 'bg-primary text-white' : 'bg-white text-gray-700 hover:bg-blue-50 hover:text-primary'}`}
                       >
                         {item.time.toLowerCase()}
                       </button>
@@ -442,7 +725,7 @@ const Appointment = () => {
 
         <button
           onClick={bookAppointment}
-          className='bg-primary text-white text-sm font-medium px-14 py-3 rounded-full my-6 cursor-pointer hover:bg-primary-dark transition duration-200'
+          className='bg-primary text-white text-base font-semibold px-14 py-4 rounded-full mt-8 mb-10 cursor-pointer shadow-lg hover:shadow-xl hover:bg-blue-700 transition-all duration-300 active:scale-95'
         >
           Book an appointment
         </button>

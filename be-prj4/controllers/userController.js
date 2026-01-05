@@ -7,12 +7,72 @@ import doctorModel from '../models/doctorModel.js';
 import appointmentModel from '../models/appointmentModel.js';
 import { GoogleGenAI } from '@google/genai';
 import medicalRecordModel from '../models/medicalRecordModel.js';
+import userNotSignModel from '../models/userNotSignModel.js';
+import { uploadToCloudinary } from '../utils/cloudinaryUpload.js';
+
+// Validate additional user info for non-signed users
+const validateAdditionalUserInfo = (name, email, phone, gender, dob, address, relationship) => {
+    const infomations = [name, email, phone, gender, dob, address, relationship];
+    const allInfoProvided = infomations.every(info => !!info);
+    const noneInfoProvided = infomations.every(info => !info);
+    return { allInfoProvided, noneInfoProvided };
+};
+
+// Validate email and phone
+const validateContactInfo = (email, phone) => {
+    if (email && !validator.isEmail(email)) {
+        return { valid: false, message: "Invalid email format" };
+    }
+    if (phone && !validator.isMobilePhone(phone, "vi-VN")) {
+        return { valid: false, message: "Invalid phone format" };
+    }
+    return { valid: true };
+};
+
+// Create userNotSign record
+const createUserNotSignRecord = async (name, email, phone, gender, dob, address, relationship, userId, userData) => {
+    try {
+        const userNotSignInfo = {
+            name,
+            email,
+            phone,
+            gender,
+            dob,
+            relationship,
+            address: JSON.parse(address),
+            userIdRelation: userId,
+            userDataRelation: userData
+        };
+        const newRecord = new userNotSignModel(userNotSignInfo);
+        await newRecord.save();
+        return newRecord;
+    } catch (e) {
+        throw new Error(`Failed to create user record: ${e.message}`);
+    }
+};
+
+// Check slot availability
+const checkSlotAvailability = (docData, slotDate, slotTime) => {
+    const slots_booked = docData.slots_booked || {};
+    const bookedSlots = slots_booked[slotDate] || [];
+    return !bookedSlots.includes(slotTime);
+};
+
+// Update doctor slots
+const updateDoctorSlots = (docData, slotDate, slotTime) => {
+    const slots_booked = { ...docData.slots_booked };
+    if (!slots_booked[slotDate]) {
+        slots_booked[slotDate] = [];
+    }
+    slots_booked[slotDate].push(slotTime);
+    return slots_booked;
+};
 
 // api to register a user
 const registerUser = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
-        if (!name || !email || !password) {
+        const { name, email, password, phone } = req.body;
+        if (!name || !email || !password || !phone) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required"
@@ -33,13 +93,21 @@ const registerUser = async (req, res) => {
             });
         }
 
+        if (!validator.isMobilePhone(phone, "vi-VN")) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid phone format"
+            });
+        }
+
         const salt = await bcrypt.genSalt(10);
         const hashPassword = await bcrypt.hash(password, salt);
 
         const userData = {
             name,
             email,
-            password: hashPassword
+            password: hashPassword,
+            phone
         }
 
         const newUser = new userModel(userData);
@@ -104,9 +172,9 @@ const loginUser = async (req, res) => {
 //api get user info
 const getProfile = async (req, res) => {
     try {
-        // const { token } = req.headers;
-        // const token_decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        // const userData = await userModel.findById(token_decode.id).select('-password')
+        const { token } = req.headers;
+        const token_decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        const userData = await userModel.findById(token_decode.id).select('-password')
         // console.log(req.user);
 
         res.json({
@@ -175,8 +243,8 @@ const updateProfile = async (req, res) => {
 
         let imageUrl = userData.image;
         if (imageFile) {
-            //upload image to cloudinary
-            const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
+            //upload image to cloudinary using streamifier
+            const imageUpload = await uploadToCloudinary(imageFile.buffer, imageFile.originalname, {
                 resource_type: 'image'
             })
             imageUrl = imageUpload.secure_url;
@@ -216,12 +284,10 @@ const updateProfile = async (req, res) => {
 // api book appointment
 const bookAppointment = async (req, res) => {
     try {
-        // const { token } = req.headers;
-        // const token_decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
-
-        const { docId, slotDate, slotTime } = req.body;
+        const { docId, slotDate, slotTime, name, email, phone, gender, dob, address, relationship } = req.body;
         const userData = req.user;
 
+        // Validate required fields
         if (!docId || !slotDate || !slotTime) {
             return res.status(400).json({
                 success: false,
@@ -229,8 +295,26 @@ const bookAppointment = async (req, res) => {
             });
         }
 
-        const docData = await doctorModel.findById(docId).select('-password');
+        // Validate contact info
+        const contactValidation = validateContactInfo(email, phone);
+        if (!contactValidation.valid) {
+            return res.status(400).json({
+                success: false,
+                message: contactValidation.message
+            });
+        }
 
+        // Validate additional user info (all or none)
+        const { allInfoProvided, noneInfoProvided } = validateAdditionalUserInfo(name, email, phone, gender, dob, address, relationship);
+        if (!(allInfoProvided || noneInfoProvided)) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing booking for additional information"
+            });
+        }
+
+        // Fetch doctor data
+        const docData = await doctorModel.findById(docId).select('-password');
         if (!docData) {
             return res.status(404).json({
                 success: false,
@@ -245,51 +329,203 @@ const bookAppointment = async (req, res) => {
             });
         }
 
-        let slots_booked = docData.slots_booked;
-        // cheking for slot available
-        if (slots_booked[slotDate]) {
-            if (slots_booked[slotDate].includes(slotTime)) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Slot not available"
-                });
-            } else {
-                slots_booked[slotDate].push(slotTime)
-            }
-        } else {
-            slots_booked[slotDate] = [];
-            slots_booked[slotDate].push(slotTime);
+        // Check slot availability
+        if (!checkSlotAvailability(docData, slotDate, slotTime)) {
+            return res.status(400).json({
+                success: false,
+                message: "Slot not available"
+            });
         }
 
-        delete docData.slots_booked;
+        // Update slots
+        const updatedSlots = updateDoctorSlots(docData, slotDate, slotTime);
 
+        // Prepare appointment data
         const appointmentData = {
             userId: userData.id,
             docId,
             userData,
-            docData,
+            docData: { ...docData.toObject(), slots_booked: undefined },
             amount: docData.fees,
             slotTime,
             slotDate,
             date: Date.now()
+        };
+
+        // Handle non-signed user data
+        let userNotSignId = null;
+        if (allInfoProvided) {
+            try {
+                let userNotSignData = await userNotSignModel.findOne({ name, email, phone, dob, relationship, gender, address: JSON.parse(address) });
+
+                if (Object.keys(userNotSignData || {}).length === 0) {
+                    userNotSignData = await createUserNotSignRecord(name, email, phone, gender, dob, address, relationship, userData.id, userData);
+                }
+
+                userNotSignId = userNotSignData._id;
+                appointmentData.userIdNotSign = userNotSignId;
+                appointmentData.userDataNotSign = {
+                    name,
+                    email,
+                    phone,
+                    gender,
+                    dob,
+                    address: JSON.parse(address),
+                    relationship
+                };
+            } catch (e) {
+                console.error("Error handling non-signed user:", e);
+            }
         }
 
+        // Save appointment and update doctor slots in parallel
         await Promise.all([
             new appointmentModel(appointmentData).save(),
-            // save new slot data in docData
-            doctorModel.findByIdAndUpdate(docId, { slots_booked })
+            doctorModel.findByIdAndUpdate(docId, { slots_booked: updatedSlots })
         ]);
 
         res.json({
             success: true,
-            message: "Appointment has booked."
-        })
+            message: "Appointment has booked successfully."
+        });
     } catch (e) {
         console.log(e);
         res.status(500).json({
             success: false,
             message: e.message
-        })
+        });
+    }
+}
+
+// api book appointment with AI assistance
+const findDoctorWithAI = async (req, res) => {
+    try {
+        const userData = req.user;
+        const { slotDate, slotTime, symptom, name, email, phone, gender, dob, address, relationship } = req.body;
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+        // Validate required fields
+        if (!slotDate || !slotTime || !symptom) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing booking information"
+            });
+        }
+
+        // Validate contact info
+        const contactValidation = validateContactInfo(email, phone);
+        if (!contactValidation.valid) {
+            return res.status(400).json({
+                success: false,
+                message: contactValidation.message
+            });
+        }
+
+        // Validate additional user info (all or none)
+        const { allInfoProvided, noneInfoProvided } = validateAdditionalUserInfo(name, email, phone, gender, dob, address, relationship);
+        if (!(allInfoProvided || noneInfoProvided)) {
+            return res.status(400).json({
+                success: false,
+                message: "Either provide all or none of the additional information"
+            });
+        }
+
+        // Validate symptom with AI
+        const validationSymptomPrompt = `Is the user's description related to health, medical issues, or booking an appointment? Respond with only 'valid' or 'invalid'. Text: ${symptom}`;
+        const validationResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: validationSymptomPrompt
+        });
+        const validationResult = validationResponse.text.trim().toLowerCase();
+
+        if (validationResult !== 'valid') {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a valid description of your symptoms."
+            });
+        }
+
+        // Get specialty recommendation from AI
+        const specialityList = ['General physician', 'Gynecologist', 'Dermatologist', 'Pediatricians', 'Neurologist', 'Gastroenterologist'];
+        const specialityPrompt = `Based on the symptoms: ${symptom}, which medical specialty would be most appropriate? Available specialties: ${specialityList.join(', ')}. Respond with only the specialty name.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: specialityPrompt
+        });
+        const recommendedSpecialty = response.text.trim();
+
+        // Find doctors with exact specialty match (case-insensitive)
+        const doctors = await doctorModel.find({
+            speciality: { $regex: `^${recommendedSpecialty}$`, $options: 'i' },
+            available: true
+        }).select('-password');
+
+        if (doctors.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: `No available doctors found for specialty: ${recommendedSpecialty}`
+            });
+        }
+
+        // Filter doctors with available slots
+        const availableDoctors = doctors.filter(doc => checkSlotAvailability(doc, slotDate, slotTime));
+
+        if (availableDoctors.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: `No doctors available for the selected slot on ${slotDate} at ${slotTime}`
+            });
+        }
+
+        // Find doctor with least bookings (load balancing)
+        let matchDoctor = availableDoctors[0];
+        let minBookings = (matchDoctor.slots_booked[slotDate] || []).length;
+
+        for (let i = 1; i < availableDoctors.length; i++) {
+            const bookingsCount = (availableDoctors[i].slots_booked[slotDate] || []).length;
+            if (bookingsCount < minBookings) {
+                minBookings = bookingsCount;
+                matchDoctor = availableDoctors[i];
+            }
+        }
+
+        // Prepare appointment data (without saving to DB - just return recommendation)
+        const appointmentData = {
+            userId: userData.id,
+            docId: matchDoctor._id,
+            userData,
+            docData: matchDoctor.toObject ? matchDoctor.toObject() : matchDoctor,
+            amount: matchDoctor.fees,
+            slotTime,
+            slotDate,
+            date: Date.now()
+        };
+
+        // Include non-signed user data if provided
+        if (allInfoProvided) {
+            appointmentData.userDataNotSign = {
+                name,
+                email,
+                phone,
+                gender,
+                dob,
+                address: JSON.parse(address),
+                relationship
+            };
+        }
+
+        return res.json({
+            success: true,
+            message: "Doctor recommended successfully",
+            appointment: appointmentData
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({
+            success: false,
+            message: e.message
+        });
     }
 }
 
@@ -378,131 +614,12 @@ const cancelAppointment = async (req, res) => {
     }
 }
 
-// api book appointment with AI assistance
-const bookAppointmentWithAI = async (req, res) => {
-    try {
-        const userData = req.user;
-        const { slotDate, slotTime, symptom } = req.body;
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-        if (!slotDate || !slotTime || !symptom) {
-            return res.status(400).json({
-                success: false,
-                message: "Missing booking information"
-            });
-        }
-
-        // valid symptom
-        const validationSymptomPrompt = `Mô tả của người dùng có liên quan đến y tế, sức khỏe hay muốn đặt lịch khám hay không. Respond with only 'valid'. If it's nonsense, unrelated to health, or not descriptive of any symptoms, respond with only 'invalid'. Text: ${symptom}`;
-        const validationResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: validationSymptomPrompt
-        });
-        const validationResult = validationResponse.text.trim().toLowerCase();
-
-        if (validationResult !== 'valid') {
-            return res.status(400).json({
-                success: false,
-                message: "Please provide a valid description of your symptoms."
-            });
-        }
-
-        const specialityData = [
-            'General physician',
-            'Gynecologist',
-            'Dermatologist',
-            'Pediatricians',
-            'Neurologist',
-            'Gastroenterologist'
-        ];
-
-        let specialityPrompt = specialityData.map(s => ` ${s}`).join(', ');
-
-        const prompt = `Based on the symptoms: ${symptom}, which medical specialty would be most appropriate? Available specialties are: ${specialityPrompt}. Please respond with only the name of the specialty.`;
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt
-        });
-        const specialty = response.text.trim();
-
-        const doctors = await doctorModel.find({ speciality: specialty, available: true }).select('-password');
-        
-        if (doctors.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: `No available doctors found for the specialty: ${specialty}`
-            });
-        }
-
-        let matchDoctor = null;
-        
-        const availableDoctors = doctors.filter(doc => {
-            const bookedSlots = doc.slots_booked[slotDate] || [];
-            return !bookedSlots.includes(slotTime);
-        })
-
-        if (availableDoctors.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: `No doctors available for the selected slot: ${slotDate} at ${slotTime}`
-            });
-        }
-
-        let minBookings = Infinity;
-        availableDoctors.forEach(doc => {
-            const bookingsCount = (doc.slots_booked[slotDate] || []).length;
-            if (bookingsCount < minBookings) {
-                minBookings = bookingsCount;
-                matchDoctor = doc;
-            }
-        })
-
-        const appointment = {
-            userId: userData.id,
-            docId: matchDoctor._id,
-            userData,
-            docData: matchDoctor,
-            amount: matchDoctor.fees,
-            slotTime,
-            slotDate,
-            date: Date.now()
-        }
-
-        return res.json({
-            success: true,
-            appointment
-        })
-    } catch (e) {
-        console.log(e);
-        res.status(500).json({
-            success: false,
-            message: e.message
-        })
-    }
-}
-
 // api get medical records by user id
-// const getMedicalRecordByUserId = async (req, res) => {
-//     try {
-//         const userData = req.user;
-//         const medicalRecords = await medicalRecordModel.find({ userId: userData.id });
-//         return res.json({
-//             success: true,
-//             medicalRecords
-//         });
-//     } catch (e) {
-//         console.log(e);
-//         res.status(500).json({
-//             success: false,
-//             message: e.message
-//         });
-//     }
-// }
 const getMedicalRecordByUserId = async (req, res) => {
     try {
         const userData = req.user;
         const medicalRecords = await medicalRecordModel.find({ userId: userData.id })
-            .sort({ createdAt: -1 }) 
+            .sort({ createdAt: -1 })
             .populate({ path: 'doctorId', select: 'name speciality image' })
             .populate({ path: 'orderedTests.testId', select: 'name price category' })
             .populate({ path: 'prescribedMedicines.medicineId', select: 'name category form' });
@@ -520,4 +637,4 @@ const getMedicalRecordByUserId = async (req, res) => {
     }
 };
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointments, cancelAppointment, bookAppointmentWithAI, getMedicalRecordByUserId };
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointments, cancelAppointment, findDoctorWithAI, getMedicalRecordByUserId };

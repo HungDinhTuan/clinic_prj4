@@ -12,6 +12,7 @@ import appointments_icon from './appointments_icon.svg'
 import earning_icon from './earning_icon.svg'
 import patients_icon from './patients_icon.svg'
 import admin_logo1 from './admin_logo1.png'
+import admin_logo_mobile from './admin_logo_mobile.png'
 import medicines_icon from './medicines_icon.svg'
 import detail_icon from './detail_icon.svg'
 import medical_test_icon from './medical_test_icon.svg'
@@ -22,6 +23,7 @@ import prescribe_tests_icon from './prescribe_tests_icon.png'
 import details_medical_test_icon from './details_medical_test_icon.png'
 import bell_icon from './bell_icon.png'
 import search_icon from './search_icon.png'
+import medical_result_icon from './medical_result_icon.png'
 
 export const assets = {
     add_icon,
@@ -47,5 +49,7 @@ export const assets = {
     prescribe_tests_icon,
     details_medical_test_icon,
     bell_icon,
-    search_icon
+    search_icon,
+    admin_logo_mobile,
+    medical_result_icon
 }

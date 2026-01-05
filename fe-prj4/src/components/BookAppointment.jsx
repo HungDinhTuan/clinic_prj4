@@ -8,8 +8,7 @@ import { assets } from '../assets/assets_frontend/assets';
 
 const BookAppointment = () => {
 
-    const { backendURL, token, getDoctorsData } = useContext(AppContext);
-    const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const { backendURL, token, getDoctorsData, userData } = useContext(AppContext);
 
     const navigate = useNavigate();
 
@@ -26,6 +25,19 @@ const BookAppointment = () => {
     const [selectedFromMore, setSelectedFromMore] = useState(false);
     const [pickerMonth, setPickerMonth] = useState(new Date().getMonth());
     const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+    const [bookForAnother, setBookForAnother] = useState(false);
+    const [userNotSigned, setUserNotSigned] = useState({
+        name: '',
+        email: '',
+        gender: '',
+        birthday: '',
+        phone: '',
+        address1: '',
+        address2: '',
+        relationship: ''
+    });
+
+    const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     const slotDateFormat = (slotDate) => {
@@ -194,6 +206,8 @@ const BookAppointment = () => {
             localStorage.setItem('pendingSymptom', symptom);
             localStorage.setItem('pendingSlotIndex', slotIndex.toString());
             localStorage.setItem('pendingSlotTime', slotTime);
+            localStorage.setItem('pendingUserNotSigned', JSON.stringify(userNotSigned));
+            localStorage.setItem('pendingBookForAnother', JSON.stringify(bookForAnother));
             localStorage.setItem('redirectAfterLogin', '/#findDoctor');
             return navigate('/login');
         }
@@ -216,13 +230,38 @@ const BookAppointment = () => {
             let year = date.getFullYear();
 
             const slotDate = day + "_" + month + "_" + year;
-            const { data } = await axios.post(`${backendURL}/user/book-appointment-ai`,
-                { symptom, slotDate, slotTime },
+
+            // Prepare request body
+            const requestBody = {
+                symptom,
+                slotDate,
+                slotTime
+            };
+
+            // Add non-signed user data if booking for another
+            if (bookForAnother) {
+                const addressStr = JSON.stringify({
+                    line1: userNotSigned.address1,
+                    line2: userNotSigned.address2
+                });
+                Object.assign(requestBody, {
+                    name: userNotSigned.name,
+                    email: userNotSigned.email,
+                    phone: userNotSigned.phone,
+                    gender: userNotSigned.gender,
+                    dob: userNotSigned.birthday,
+                    address: addressStr,
+                    relationship: userNotSigned.relationship
+                });
+            }
+
+            const { data } = await axios.post(`${backendURL}/user/find-doctor`,
+                requestBody,
                 { headers: { token } });
 
             if (data.success) {
-                // console.log(data.appointmenet);
                 setAppointment(data.appointment);
+                console.log(data.appointment);
                 setShowBooking(true);
 
                 // delete localStorage items
@@ -250,8 +289,32 @@ const BookAppointment = () => {
         const slotTime = appointment?.slotTime;
 
         try {
+            // Prepare request body with required fields
+            const requestBody = {
+                docId,
+                slotDate,
+                slotTime
+            };
+
+            // Add non-signed user data if booking for another
+            if (bookForAnother && appointment?.userDataNotSign) {
+                const addressStr = JSON.stringify({
+                    line1: userNotSigned.address1,
+                    line2: userNotSigned.address2
+                });
+                Object.assign(requestBody, {
+                    name: userNotSigned.name,
+                    email: userNotSigned.email,
+                    phone: userNotSigned.phone,
+                    gender: userNotSigned.gender,
+                    dob: userNotSigned.birthday,
+                    address: addressStr,
+                    relationship: userNotSigned.relationship
+                });
+            }
+
             const { data } = await axios.post(`${backendURL}/user/booking-appointment`,
-                { docId, slotDate, slotTime },
+                requestBody,
                 { headers: { token } })
 
             if (data.success) {
@@ -260,13 +323,24 @@ const BookAppointment = () => {
                 setShowBooking(false);
                 setAppointment(null);
                 setSymptom('');
+                setBookForAnother(false);
+                setUserNotSigned({
+                    name: '',
+                    email: userData?.email || '',
+                    gender: '',
+                    birthday: '',
+                    phone: userData?.phone || '',
+                    address1: '',
+                    address2: '',
+                    relationship: ''
+                });
                 navigate('/my-appointments');
             } else {
                 toast.error(data.message)
             }
         } catch (e) {
             console.log(e);
-            toast.error(e.response.data.message)
+            toast.error(e.response?.data?.message || 'An error occurred')
         }
     };
 
@@ -276,11 +350,32 @@ const BookAppointment = () => {
             const savedSymptom = localStorage.getItem('pendingSymptom');
             const savedSlotIndexStr = localStorage.getItem('pendingSlotIndex');
             const savedSlotTime = localStorage.getItem('pendingSlotTime');
+            const savedUserNotSigned = localStorage.getItem('pendingUserNotSigned');
+            const savedBookForAnother = localStorage.getItem('pendingBookForAnother');
 
-            if (!savedSlotIndexStr && !savedSymptom && !savedSlotTime) return;
+            if (!savedSlotIndexStr && !savedSymptom && !savedSlotTime && !savedUserNotSigned && !savedBookForAnother) return;
 
             // restore saved symptom
             if (savedSymptom) setSymptom(savedSymptom);
+
+            // restore saved userNotSigned and bookForAnother
+            if (savedUserNotSigned) {
+                try {
+                    const parsedUserNotSigned = JSON.parse(savedUserNotSigned);
+                    setUserNotSigned(parsedUserNotSigned);
+                } catch (error) {
+                    console.log('Error parsing userNotSigned:', error);
+                }
+            }
+
+            if (savedBookForAnother) {
+                try {
+                    const parsedBookForAnother = JSON.parse(savedBookForAnother);
+                    setBookForAnother(parsedBookForAnother);
+                } catch (error) {
+                    console.log('Error parsing bookForAnother:', error);
+                }
+            }
 
             // restore saved time and date
             if (savedSlotIndexStr) {
@@ -309,6 +404,9 @@ const BookAppointment = () => {
             localStorage.removeItem('pendingSymptom');
             localStorage.removeItem('pendingSlotIndex');
             localStorage.removeItem('pendingSlotTime');
+            localStorage.removeItem('pendingUserNotSigned');
+            localStorage.removeItem('pendingBookForAnother');
+            localStorage.removeItem('redirectAfterLogin');
         }
     }, [token, docSlots.length]);
 
@@ -329,10 +427,157 @@ const BookAppointment = () => {
 
     return (
         <div className="max-w-4xl mx-auto p-4">
-            <p className="text-2xl font-semibold mb-4" id='findDoctor'>Book Appointment</p>
+            <div className="mb-6 flex items-center justify-between gap-4">
+                <p className="text-2xl font-semibold" id='findDoctor'>Book Appointment</p>
+                {/* Book for Another */}
+                {
+                    bookForAnother
+                        ? (
+                            <button
+                                className="text-red-500 font-medium hover:text-red-700 transition duration-200 whitespace-nowrap text-sm sm:text-base cursor-pointer hover:underline"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setBookForAnother(false);
+                                    setUserNotSigned({
+                                        name: '',
+                                        email: userData?.email || '',
+                                        gender: '',
+                                        birthday: '',
+                                        phone: userData?.phone || '',
+                                        address1: '',
+                                        address2: ''
+                                    });
+                                }}
+                            >
+                                - Cancel
+                            </button>
+                        )
+                        : (
+                            <button
+                                className="text-primary font-medium hover:text-primary-dark transition duration-200 whitespace-nowrap text-sm sm:text-base cursor-pointer hover:underline"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setBookForAnother(true);
+                                    setUserNotSigned({
+                                        name: '',
+                                        email: userData?.email || '',
+                                        gender: '',
+                                        birthday: '',
+                                        phone: userData?.phone || '',
+                                        address1: '',
+                                        address2: '',
+                                        relationship: ''
+                                    });
+                                }}
+                            >
+                                + Book for Another
+                            </button>
+                        )
+                }
+            </div>
+            {
+                bookForAnother && (
+                    <div className="mb-6 p-6 border-2 border-blue-200 rounded-lg bg-white shadow-sm">
+                        <p className="font-semibold text-gray-800 mb-4 text-lg">📋 Enter Patient's Information</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-800 mb-2">👤 Full Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                                    placeholder='Enter full name'
+                                    onChange={(e) => setUserNotSigned({ ...userNotSigned, name: e.target.value })}
+                                    value={userNotSigned.name}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-800 mb-2">🎂 Date of Birth</label>
+                                <input
+                                    type="date"
+                                    required
+                                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                                    onChange={(e) => setUserNotSigned({ ...userNotSigned, birthday: e.target.value })}
+                                    value={userNotSigned.birthday}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-800 mb-2">📧 Email</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                                    placeholder='Enter email address'
+                                    onChange={(e) => setUserNotSigned({ ...userNotSigned, email: e.target.value })}
+                                    value={userNotSigned.email}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-800 mb-2">📞 Phone Number</label>
+                                <input
+                                    type="tel"
+                                    required
+                                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                                    placeholder='Enter phone number'
+                                    onChange={(e) => setUserNotSigned({ ...userNotSigned, phone: e.target.value })}
+                                    value={userNotSigned.phone}
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-semibold text-gray-800 mb-2">🏠 Address</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition mb-2'
+                                    placeholder='Street address'
+                                    onChange={(e) => setUserNotSigned({ ...userNotSigned, address1: e.target.value })}
+                                    value={userNotSigned.address1}
+                                />
+                                <input
+                                    type="text"
+                                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition'
+                                    placeholder='City, province (optional)'
+                                    onChange={(e) => setUserNotSigned({ ...userNotSigned, address2: e.target.value })}
+                                    value={userNotSigned.address2}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-800 mb-2">👥 Gender</label>
+                                <select
+                                    required
+                                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white cursor-pointer'
+                                    onChange={(e) => setUserNotSigned({ ...userNotSigned, gender: e.target.value })}
+                                    value={userNotSigned.gender}
+                                >
+                                    <option value="">-- Select Gender --</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-800 mb-2">📱 Relationship</label>
+                                <select
+                                    required
+                                    className='w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white cursor-pointer'
+                                    onChange={(e) => setUserNotSigned({ ...userNotSigned, relationship: e.target.value })}
+                                    value={userNotSigned.relationship}
+                                >
+                                    <option value="">-- Select Relationship --</option>
+                                    <option value="Parent">Parent</option>
+                                    <option value="Sibling">Sibling</option>
+                                    <option value="Spouse">Spouse</option>
+                                    <option value="Child">Child</option>
+                                    <option value="Relative">Relative</option>
+                                    <option value="Friend">Friend</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
             <div className="mb-6">
                 <textarea
-                    className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full p-4 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     rows="4"
                     placeholder="Enter your symptoms here..."
                     value={symptom}
@@ -531,77 +776,129 @@ const BookAppointment = () => {
                 {/* popup booking appointment */}
                 {
                     showBooking && appointment && (
-                        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
-                            <div className='bg-white rounded-2xl p-6 shadow-xl max-w-5xl w-full mx-4'>
+                        <div className='fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm'>
+                            <div className='bg-white rounded-2xl shadow-2xl max-w-5xl w-full mx-auto overflow-hidden'>
+                                {/* Close Button */}
+                                <button
+                                    onClick={() => { setShowBooking(false); setAppointment(null); }}
+                                    className='absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl z-10'
+                                >
+                                    ×
+                                </button>
+
                                 {/*---------------Doctor Details--------------- */}
-                                <div className='flex flex-col sm:flex-row gap-6'>
+                                <div className='flex flex-col sm:flex-row gap-8 p-8'>
                                     <div className='flex-shrink-0'>
                                         <img
-                                            className='bg-primary w-full sm:w-72 h-72 object-cover rounded-2xl shadow-md'
+                                            className='bg-primary w-full sm:w-80 h-96 object-cover rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300'
                                             src={appointment?.docData.image}
-                                            alt=""
+                                            alt={appointment?.docData.name}
                                         />
                                     </div>
 
-                                    <div className='flex-1 border border-gray-200 rounded-2xl p-6 sm:p-8 bg-white shadow-lg'>
+                                    <div className='flex-1 flex flex-col justify-center'>
                                         {/*---------------Doctor Info--------------- */}
-                                        <p className='flex items-center gap-2 text-xl sm:text-2xl font-semibold text-gray-900'>
-                                            {appointment?.docData.name}
-                                            <img className='w-5' src={assets.verified_icon} alt="" />
-                                        </p>
+                                        <div className='space-y-6'>
+                                            <div>
+                                                <p className='flex items-center gap-3 text-3xl font-bold text-gray-900'>
+                                                    {appointment?.docData.name}
+                                                    <img className='w-6 h-6' src={assets.verified_icon} alt="Verified" />
+                                                </p>
 
-                                        <div className='flex items-center gap-2 text-sm mt-1 text-gray-600'>
-                                            <p>
-                                                {appointment?.docData.degree} - {appointment?.docData.speciality}
-                                            </p>
-                                            <button className='py-0.5 px-2 border text-xs rounded-full'>
-                                                {appointment?.docData.experience}
-                                            </button>
+                                                <div className='flex flex-wrap items-center gap-3 text-sm mt-3 text-gray-600'>
+                                                    <p className='font-semibold text-gray-800'>
+                                                        {appointment?.docData.degree} - {appointment?.docData.speciality}
+                                                    </p>
+                                                    <button className='py-1 px-3 border border-gray-300 text-xs rounded-full font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors duration-300'>
+                                                        {appointment?.docData.experience}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/*---------------Doctor About--------------- */}
+                                            <div className='pt-6 border-t border-gray-200'>
+                                                <p className='flex items-center gap-2 text-sm font-bold text-gray-900 mb-3'>
+                                                    <img src={assets.info_icon} alt="" />
+                                                    About
+                                                </p>
+                                                <p className='text-sm text-gray-600 leading-relaxed max-w-[700px]'>
+                                                    {appointment?.docData.about}
+                                                </p>
+                                            </div>
+
+                                            {/*---------------Appointment Details--------------- */}
+                                            {/* information another */}
+                                            {
+                                                bookForAnother && appointment?.userDataNotSign && (
+                                                    <div className='pt-6 border-t border-gray-200'>
+                                                        <p className='flex items-center gap-2 text-sm font-bold text-gray-900 mb-4'>
+                                                            👤 Patient Information
+                                                        </p>
+                                                        <div className='bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-5 space-y-3 border border-blue-200'>
+                                                            <div className='flex items-center justify-between'>
+                                                                <span className='font-semibold text-gray-700'>Name:</span>
+                                                                <span className='text-gray-900 font-medium'>{appointment?.userDataNotSign.name}</span>
+                                                            </div>
+                                                            <div className='border-t border-blue-200'></div>
+                                                            <div className='flex items-center justify-between'>
+                                                                <span className='font-semibold text-gray-700'>Email:</span>
+                                                                <span className='text-gray-900 font-medium'>{appointment?.userDataNotSign.email}</span>
+                                                            </div>
+                                                            <div className='border-t border-blue-200'></div>
+                                                            <div className='flex items-center justify-between'>
+                                                                <span className='font-semibold text-gray-700'>Phone:</span>
+                                                                <span className='text-gray-900 font-medium'>{appointment?.userDataNotSign.phone}</span>
+                                                            </div>
+                                                            <div className='border-t border-blue-200'></div>
+                                                            <div className='flex items-center justify-between'>
+                                                                <span className='font-semibold text-gray-700'>Gender:</span>
+                                                                <span className='text-gray-900 font-medium'>{appointment?.userDataNotSign.gender}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            }
+                                            <div className='space-y-4 pt-6 border-t border-gray-200'>
+                                                <div className='flex items-center justify-between'>
+                                                    <p className='text-gray-700 font-semibold'>
+                                                        Appointment fee:
+                                                    </p>
+                                                    <p className='text-2xl font-bold text-primary'>
+                                                        <NumericFormat
+                                                            value={appointment?.docData.fees}
+                                                            thousandSeparator="."
+                                                            decimalSeparator=","
+                                                            displayType="text"
+                                                            decimalScale={3}
+                                                        /> VND
+                                                    </p>
+                                                </div>
+
+                                                <div className='bg-blue-50 rounded-lg p-4'>
+                                                    <p className='text-sm text-gray-700'>
+                                                        <span className='font-bold text-gray-900'>📅 Date & Time: </span>
+                                                        <span className='font-semibold text-primary'>{slotDateFormat(appointment?.slotDate)} | {appointment?.slotTime}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
-
-                                        {/*---------------Doctor About--------------- */}
-                                        <div>
-                                            <p className='flex items-center gap-1 text-sm font-medium text-gray-900 mt-3'>
-                                                About <img src={assets.info_icon} alt="" />
-                                            </p>
-                                            <p className='text-sm text-gray-600 leading-relaxed max-w-[700px] mt-1'>
-                                                {appointment?.docData.about}
-                                            </p>
-                                        </div>
-
-                                        <p className='text-gray-600 font-medium mt-4'>
-                                            Appointment fee:&nbsp;
-                                            <span className='text-gray-800'>
-                                                <NumericFormat
-                                                    value={appointment?.docData.fees}
-                                                    thousandSeparator="."
-                                                    decimalSeparator=","
-                                                    displayType="text"
-                                                    decimalScale={3}
-                                                /> VND
-                                            </span>
-                                        </p>
-
-                                        <p className='text-sm text-gray-600 mt-2'>
-                                            <span className='font-medium text-neutral-700'>Date & Time: </span>
-                                            {slotDateFormat(appointment?.slotDate)} | {appointment?.slotTime}
-                                        </p>
                                     </div>
                                 </div>
 
-                                <div className='flex flex-col sm:flex-row justify-center gap-4 mt-6'>
+                                {/*---------------Action Buttons--------------- */}
+                                <div className='flex flex-col sm:flex-row justify-center gap-4 p-8 border-t border-gray-200 bg-gray-50'>
                                     <button
                                         onClick={() => { setShowBooking(false); setAppointment(null); }}
-                                        className='px-4 py-2 rounded-full bg-red-600 text-white cursor-pointer'
+                                        className='px-8 py-3 rounded-full border-2 border-gray-300 text-gray-700 font-semibold cursor-pointer hover:bg-gray-100 transition-all duration-300 active:scale-95 hover:shadow-md'
                                     >
                                         Cancel
                                     </button>
 
                                     <button
                                         onClick={bookAppointment}
-                                        className='px-4 py-2 rounded-full border text-sm text-primary bg-white cursor-pointer'
+                                        className='px-8 py-3 rounded-full bg-primary text-white font-semibold cursor-pointer shadow-lg hover:shadow-xl hover:bg-blue-700 transition-all duration-300 active:scale-95'
                                     >
-                                        Book an appointment
+                                        Book Appointment
                                     </button>
                                 </div>
                             </div>

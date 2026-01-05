@@ -7,6 +7,8 @@ export const AdminContext = createContext();
 const AdminContextProvider = ({ children }) => {
 
   const [aToken, setAToken] = useState(localStorage.getItem('aToken') ? localStorage.getItem('aToken') : '');
+  const [adminName, setAdminName] = useState('Admin');
+  const [adminImage, setAdminImage] = useState('');
   const [allDoctors, setAllDoctors] = useState([]);
   const [allTestingStaffs, setAllTestingStaffs] = useState([]);
   const [appointments, setAppointments] = useState([]);
@@ -146,6 +148,10 @@ const AdminContextProvider = ({ children }) => {
   const value = {
     aToken,
     setAToken,
+    adminName,
+    setAdminName,
+    adminImage,
+    setAdminImage,
     backendUrl,
     allDoctors,
     getAllDoctors,

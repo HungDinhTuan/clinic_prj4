@@ -7,6 +7,7 @@ import appointmentModel from "../models/appointmentModel.js"
 import medicalTestModel from "../models/medicalTestModel.js"
 import doctorModel from "../models/doctorModel.js"
 import e from "express"
+import { uploadMultipleToCloudinary } from "../utils/cloudinaryUpload.js"
 
 //api change avaibility testing staff
 const changeAvailablityTS = async (req, res) => {
@@ -79,7 +80,7 @@ const getPendingTests = async (req, res) => {
     try {
         const testingStaffData = req.testingStaff;
         const testingStaffId = testingStaffData._id;
-        
+
         const medicalRecords = await medicalRecordModel.find({});
 
         const pendingTests = [];
@@ -294,12 +295,9 @@ const assignDetailsMedicalTest = async (req, res) => {
         }
 
         let imageUrls = [];
-        for (const file of imageFiles) {
-            const fileDataUri = bufferToDataUri(file);
-            const uploadResult = await cloudinary.uploader.upload(fileDataUri, {
-                folder: 'medical_tests'
-            });
-            imageUrls.push(uploadResult.secure_url);
+        if (imageFiles.length > 0) {
+            const uploadResults = await uploadMultipleToCloudinary(imageFiles, { folder: 'medical_tests' });
+            imageUrls = uploadResults.map(result => result.secure_url);
         }
 
         // Atomic update with $set for matching elem

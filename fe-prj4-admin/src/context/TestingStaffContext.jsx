@@ -65,6 +65,7 @@ const TestingStaffContextProvider = ({ children }) => {
         pendingTests,
         getPendingTests,
         profileData,
+        staffData: profileData,
         setProfileData,
         waitingResults,
         getWaitingResults

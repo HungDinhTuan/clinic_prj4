@@ -371,6 +371,42 @@ const createDiagnosis = async (req, res) => {
     }
 }
 
+//api get medical tests done for doctor panel
+const getMedicalTestsDone = async (req, res) => {
+    try {
+        const doctorData = req.doctor;
+        const { medicalRecordId } = req.body; // Correctly extract medicalRecordId
+
+        if (!medicalRecordId) {
+            return res.status(400).json({
+                success: false,
+                message: "Medical record ID is required."
+            });
+        }
+
+        const medicalRecordData = await medicalRecordModel.findById(medicalRecordId);
+
+        if (!medicalRecordData) {
+            return res.status(403).json({
+                success: false,
+                message: "Medical record does not exist."
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            orderedTests: medicalRecordData.orderedTests
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).send({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+// api prescribe medicines for doctor panel
 const prescribedMedicines = async (req, res) => {
     try {
         const { medicalRecordId, medicines, followUpDate } = req.body;
@@ -436,7 +472,11 @@ const prescribedMedicines = async (req, res) => {
         appointmentData.isCompleted = 'completed';
         await appointmentData.save();
 
-        const currentMedicalRecord = await medicalRecordModel.findById(medicalRecordId);
+        // Fetch the updated medical record with populated data
+        const currentMedicalRecord = await medicalRecordModel.findById(medicalRecordId).populate({
+            path: 'userId',
+            select: 'name image dob phone gender'
+        });
 
         res.status(200).json({
             success: true,
@@ -452,12 +492,28 @@ const prescribedMedicines = async (req, res) => {
     }
 }
 
+// parse date to slotDtate format day_month_year
+const parseDateToSlotDate = (isoDate) => {
+    if (!isoDate) return null;
+    const [year, month, day] = isoDate.split('-');
+    return `${parseInt(day)}_${parseInt(month)}_${year}`;
+};
+
+// api get waiting patients for doctor panel
 const getWaitingPatients = async (req, res) => {
     try {
         const docData = req.doctor;
         const docId = docData._id;
+        const { date } = req.query; // Get date parameter from query string (format: day_month_year)
 
-        const appointments = await appointmentModel.find({ docId, cancelled: false, isCompleted: 'pending' || 'in-tests' });
+        const slotDate = parseDateToSlotDate(date);
+        // Get appointments for the doctor
+        const appointmentQuery = { docId, cancelled: false, isCompleted: 'pending' || 'in-tests' };
+        // Filter by date if provided
+        if (date) {
+            appointmentQuery.slotDate = slotDate;
+        }
+        const appointments = await appointmentModel.find(appointmentQuery);
         // console.log(appointments);
 
         // sort appointments by slotDate
@@ -475,9 +531,14 @@ const getWaitingPatients = async (req, res) => {
         });
 
         // filter medical records where all ordered tests are completed
-        const medicalRecordsTestsDone = medicalRecords.filter(record => {
+        let medicalRecordsTestsDone = medicalRecords.filter(record => {
             return record.orderedTests.every(test => test.status === 'completed');
         });
+
+        // Filter medical records by date if provided
+        if (date) {
+            medicalRecordsTestsDone = medicalRecordsTestsDone.filter(record => record.slotDate === date);
+        }
         // console.log('before sort', medicalRecordsTestsDone);
 
         // sort medical records done by testDoneAt
@@ -511,7 +572,8 @@ const getWaitingPatients = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            waitingPatients
+            waitingPatients,
+            selectedDate: date || null
         });
     } catch (e) {
         console.log(e);
@@ -522,4 +584,4 @@ const getWaitingPatients = async (req, res) => {
     }
 }
 
-export { changeAvailablityD, doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients }
+export { changeAvailablityD, doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients, getMedicalTestsDone };

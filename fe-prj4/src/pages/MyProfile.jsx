@@ -40,81 +40,88 @@ const MyProfile = () => {
   }
 
   return userData && (
-    <div className='max-x-lg flex flex-col gap-2 text-sm'>
+    <div className='max-w-2xl flex flex-col gap-4 text-base pt-5'>
       {
         isEdit
           ? <label htmlFor="image">
-            <div className='inline-block relative cursor-pointer'>
-              <img className='w-36 rounded opacity-75' src={image ? URL.createObjectURL(image) : userData.image} alt="" />
-              <img className='w-10 absolute bottom-12 right-12' src={image ? " " : assets.upload_icon} />
+            <div className='inline-block relative cursor-pointer group'>
+              <img className='w-40 h-40 rounded-lg shadow-md object-cover opacity-75 group-hover:opacity-100 transition-opacity' src={image ? URL.createObjectURL(image) : userData.image} alt="" />
+              <img className='w-10 absolute bottom-3 right-3 bg-white p-2 rounded-full shadow-md' src={image ? " " : assets.upload_icon} />
             </div>
             <input onChange={(e) => setImage(e.target.files[0])} type="file" name='' id='image' hidden />
           </label>
-          : <img className='w-36 rounded' src={userData.image} alt="" />
+          : <img className='w-40 h-40 rounded-lg shadow-md object-cover' src={userData.image} alt="" />
       }
-      <p className='font-medium text-3xl text-neutral-800 mt-4'>{userData.name}</p>
-      {/* {
-        isEdit
-          ? <input className='bg-gray-50 text-3xl font-medium max-w-60 mt-4' type="text" value={userData.name} onChange={e => setUserData(prev => ({ ...prev, name: e.target.value }))} />
-          : <p className='font-medium text-3xl text-neutral-800 mt-4'>{userData.name}</p>
-      } */}
-      <hr className='bg-zinc-400 h-px border-none' />
+      <p className='font-bold text-3xl text-neutral-900 mt-6'>{userData.name}</p>
+      <hr className='bg-gray-300 h-0.5 border-none my-4' />
       <div>
-        <p className='text-neutral-500 underline mt-3'>CONTACT IMFORMATION</p>
-        <div className='grid grid-cols-[1fr_3fr] gap-y-2.5 mt-3 text-neutral-700'>
-          <p className='font-medium'>Email :</p>
-          {
-            isEdit
-              ? <input className='bg-gray-100 max-w-52' type="text" onChange={e => setUserData(prev => ({ ...prev, email: e.target.value }))} value={userData.email} />
-              : <p className='text-primary'>{userData.email}</p>
-          }
-          <p className='font-medium'>Phone :</p>
-          {
-            isEdit
-              ? <input className='bg-gray-100 max-w-52' type="text" value={userData.phone} onChange={e => setUserData(prev => ({ ...prev, phone: e.target.value }))} />
-              : <p className='text-primary'>{userData.phone}</p>
-          }
-          <p className='font-medium'>Address :</p>
-          {
-            isEdit
-              ? <p>
-                <input className='bg-gray-50' type="text" value={userData.address.line1} onChange={e => setUserData(prev => ({ ...prev, address: { ...prev.address, line1: e.target.value } }))} />
-                <br />
-                <input className='bg-gray-50' type="text" value={userData.address.line2} onChange={e => setUserData(prev => ({ ...prev, address: { ...prev.address, line2: e.target.value } }))} />
-              </p>
-              : <p className='text-gray-500'>
-                {userData.address.line1}
-                <br />
-                {userData.address.line2}
-              </p>
-          }
-        </div>
-        <div>
-          <p className='text-neutral-500 underline mt-3'>BASIC IMFORMATION</p>
-          <div className='grid grid-cols-[1fr_3fr] gap-y-2.5 mt-3 text-neutral-700'>
-            <p className='font-medium'>Gender :</p>
+        <p className='text-gray-700 font-semibold uppercase tracking-wide text-sm mb-4'>📞 Contact Information</p>
+        <div className='grid grid-cols-1 gap-y-4 text-neutral-700'>
+          <div className='grid grid-cols-[120px_1fr] gap-4 items-center'>
+            <p className='font-semibold text-gray-800'>Email</p>
             {
               isEdit
-                ? <select className='max-w-20 bg-gray-100 ' value={userData.gender} onChange={e => setUserData(prev => ({ ...prev, gender: e.target.value }))} >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-                : <p className='text-gray-500'>{userData.gender}</p>
+                ? <input className='px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white' type="text" onChange={e => setUserData(prev => ({ ...prev, email: e.target.value }))} value={userData.email} />
+                : <p className='text-primary font-medium'>{userData.email}</p>
             }
-            <p className='font-medium'>Birthday :</p>
+          </div>
+          <div className='grid grid-cols-[120px_1fr] gap-4 items-center'>
+            <p className='font-semibold text-gray-800'>Phone</p>
             {
               isEdit
-                ? <input className='bg-gray-100 max-w-52' type="date" value={userData.dob} onChange={e => setUserData(prev => ({ ...prev, dob: e.target.value }))} />
-                : <p className='text-gray-500'>{userData.dob}</p>
+                ? <input className='px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white' type="text" value={userData.phone} onChange={e => setUserData(prev => ({ ...prev, phone: e.target.value }))} />
+                : <p className='text-primary font-medium'>{userData.phone}</p>
+            }
+          </div>
+          <div className='grid grid-cols-[120px_1fr] gap-4'>
+            <p className='font-semibold text-gray-800'>Address</p>
+            {
+              isEdit
+                ? <div className='flex flex-col gap-2'>
+                  <input className='px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white' type="text" placeholder='Street address' value={userData.address.line1} onChange={e => setUserData(prev => ({ ...prev, address: { ...prev.address, line1: e.target.value } }))} />
+                  <input className='px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white' type="text" placeholder='City, province' value={userData.address.line2} onChange={e => setUserData(prev => ({ ...prev, address: { ...prev.address, line2: e.target.value } }))} />
+                </div>
+                : <p className='text-gray-600'>
+                  <span className='font-medium'>{userData.address.line1}</span>
+                  <br />
+                  <span className='text-sm'>{userData.address.line2}</span>
+                </p>
             }
           </div>
         </div>
+        <div>
+          <p className='text-gray-700 font-semibold uppercase tracking-wide text-sm mb-4 mt-6'>ℹ️ Basic Information</p>
+          <div className='grid grid-cols-1 gap-y-4 text-neutral-700'>
+            <div className='grid grid-cols-[120px_1fr] gap-4 items-center'>
+              <p className='font-semibold text-gray-800'>Gender</p>
+              {
+                isEdit
+                  ? <select className='px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white cursor-pointer' value={userData.gender} onChange={e => setUserData(prev => ({ ...prev, gender: e.target.value }))} >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                  : <p className='text-gray-600 font-medium'>{userData.gender}</p>
+              }
+            </div>
+            <div className='grid grid-cols-[120px_1fr] gap-4 items-center'>
+              <p className='font-semibold text-gray-800'>Birthday</p>
+              {
+                isEdit
+                  ? <input className='px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition bg-white' type="date" value={userData.dob} onChange={e => setUserData(prev => ({ ...prev, dob: e.target.value }))} />
+                  : <p className='text-gray-600 font-medium'>{userData.dob}</p>
+              }
+            </div>
+          </div>
+        </div>
       </div>
-      <div className='mt-10'>
+      <div className='mt-10 flex gap-3'>
         {
           isEdit
-            ? <button className='border border-primary px-8 py-2 rounded-full  text-primary hover:bg-primary hover:text-white transition-all cursor-pointer' onClick={updateUserProfileData}>Save information</button>
-            : <button className='border border-primary px-8 py-2 rounded-full  text-primary hover:bg-primary hover:text-white transition-all cursor-pointer' onClick={() => setIsEdit(true)}>Edit</button>
+            ? <>
+              <button className='px-8 py-2.5 rounded-full bg-primary text-white font-medium hover:bg-primary-dark transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md' onClick={updateUserProfileData}>✓ Save Information</button>
+              <button className='px-8 py-2.5 rounded-full border-2 border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition-all duration-200 cursor-pointer' onClick={() => setIsEdit(false)}>✕ Cancel</button>
+            </>
+            : <button className='px-8 py-2.5 rounded-full border-2 border-primary text-primary font-medium hover:bg-primary hover:text-white transition-all duration-200 cursor-pointer' onClick={() => setIsEdit(true)}>✏️ Edit Profile</button>
         }
       </div>
     </div>

@@ -9,40 +9,40 @@ export const AppContext = createContext();
 const AppContextProvider = ({ children }) => {
 
     const backendURL = import.meta.env.VITE_BACKEND_URL;
-    
+
     const [doctors, setDoctors] = useState([]);
-    const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : false );
-    const [userData, setUserData] = useState(false);
+    const [token, setToken] = useState(localStorage.getItem('token') ? localStorage.getItem('token') : false);
+    const [userData, setUserData] = useState({});
 
     const getDoctorsData = async () => {
-        try{
-            const {data} = await axios.get(`${backendURL}/doctor/list`);
-            
-            if(data.success){
+        try {
+            const { data } = await axios.get(`${backendURL}/doctor/list`);
+
+            if (data.success) {
                 setDoctors(data.doctors);
-            }else{
+            } else {
                 toast.error(data.message);
             }
-        }catch(e){
+        } catch (e) {
             console.log(e);
             toast.error(e.response.data.message);
         }
     }
 
     const loadUserProfileData = async () => {
-        try{
-            const {data} = await axios.get(`${backendURL}/user/get-profile`, {headers : {token}});
-            if(data.success){
+        try {
+            const { data } = await axios.get(`${backendURL}/user/get-profile`, { headers: { token } });
+            if (data.success) {
                 setUserData(data.userData);
-            }else{
+            } else {
                 toast.error(data.message);
             }
-        }catch(e){
+        } catch (e) {
             console.log(e);
             toast.error(e.response.data.message);
         }
     }
-    
+
     const value = {
         doctors,
         getDoctorsData,
@@ -54,15 +54,15 @@ const AppContextProvider = ({ children }) => {
         loadUserProfileData
     };
 
-    useEffect(() =>{
+    useEffect(() => {
         getDoctorsData();
     }, [])
 
     useEffect(() => {
-        if(token){
+        if (token) {
             loadUserProfileData();
-        }else{
-            setUserData(false);
+        } else {
+            setUserData({});
         }
     }, [token]);
 

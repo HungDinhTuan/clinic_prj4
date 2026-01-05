@@ -1,5 +1,5 @@
 import express from 'express';
-import { doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients } from '../controllers/doctorController.js';
+import { doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients, getMedicalTestsDone } from '../controllers/doctorController.js';
 import authDoctor from '../middlewares/authDoctor.js';
 import { getAllMedicalTests, getAllMedicines } from '../controllers/adminController.js';
 
@@ -16,6 +16,7 @@ doctorRoute.get('/medical-tests', authDoctor, getAllMedicalTests);
 doctorRoute.put('/update-profile', authDoctor, updateDoctorProfile);
 doctorRoute.post('/create-diagnosis', authDoctor, createDiagnosis);
 doctorRoute.put('/prescription-medicines', authDoctor, prescribedMedicines);
+doctorRoute.post('/medical-tests-done', authDoctor, getMedicalTestsDone);
 doctorRoute.get('/waiting-patients', authDoctor, getWaitingPatients);
 
 export default doctorRoute
