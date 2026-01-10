@@ -24,6 +24,7 @@ import details_medical_test_icon from './details_medical_test_icon.png'
 import bell_icon from './bell_icon.png'
 import search_icon from './search_icon.png'
 import medical_result_icon from './medical_result_icon.png'
+import visibility_icon from './visibility_icon.png'
 
 export const assets = {
     add_icon,
@@ -51,5 +52,6 @@ export const assets = {
     bell_icon,
     search_icon,
     admin_logo_mobile,
-    medical_result_icon
+    medical_result_icon,
+    visibility_icon
 }

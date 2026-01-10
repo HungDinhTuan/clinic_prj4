@@ -11,7 +11,7 @@ const DoctorContextProvider = ({ children }) => {
   const [dToken, setDToken] = useState(localStorage.getItem('dToken') ? localStorage.getItem('dToken') : '');
   const [appointments, setAppointments] = useState([]);
   const [dashData, setDashData] = useState(false);
-  const [profileData, setProfileData] = useState(false);
+  const [doctorData, setDoctorData] = useState(false);
   const [medicines, setMedicines] = useState([]);
   const [medicalTests, setMedicalTests] = useState([]);
   const [waitingPatients, setWaitingPatients] = useState([]);
@@ -89,12 +89,12 @@ const DoctorContextProvider = ({ children }) => {
     }
   }
 
-  const getProfileData = async () => {
+  const getDoctorData = async () => {
     try {
       const { data } = await axios.get(`${backendDocUrl}/profile`, { headers: { dToken } });
 
       if (data.success) {
-        setProfileData(data.docData);
+        setDoctorData(data.docData);
         // console.log(data.docData);
       } else {
         toast.error(data.message);
@@ -104,12 +104,19 @@ const DoctorContextProvider = ({ children }) => {
     }
   }
 
-  const getWaitingPatients = async (date = null) => {
+  const getWaitingPatients = async (date = null, isCompleted = 'false') => {
     try {
       let url = `${backendDocUrl}/waiting-patients`;
+      const params = new URLSearchParams();
       if (date) {
-        url += `?date=${date}`;
+        params.append('date', date);
       }
+      params.append('isCompleted', isCompleted);
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
       const { data } = await axios.get(url, { headers: { dToken } });
       if (data.success) {
         setWaitingPatients(data.waitingPatients);
@@ -133,10 +140,9 @@ const DoctorContextProvider = ({ children }) => {
     dashData,
     setDashData,
     getDashData,
-    profileData,
-    doctorData: profileData,
-    setProfileData,
-    getProfileData,
+    doctorData,
+    setDoctorData,
+    getDoctorData,
     medicines,
     getAllMedicines,
     medicalTests,

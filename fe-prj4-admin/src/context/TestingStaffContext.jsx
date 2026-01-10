@@ -11,8 +11,9 @@ const TestingStaffContextProvider = ({ children }) => {
     const [tToken, setTToken] = useState(localStorage.getItem('tToken') ? localStorage.getItem('tToken') : '');
     const [pendingTests, setPendingTests] = useState([]);
     const [waitingResults, setWaitingResults] = useState([]);
-    const [profileData, setProfileData] = useState(false);
+    const [testingStaffProfile, setTestingStaffProfile] = useState(false);
     const [medicalTests, setMedicalTests] = useState([]);
+    const [dashData, setDashData] = useState(false);
 
     const getAllMedicalTests = async () => {
         try {
@@ -42,12 +43,44 @@ const TestingStaffContextProvider = ({ children }) => {
         }
     }
 
-    const getWaitingResults = async () => {
+    const getWaitingResults = async (status = 'in-progress') => {
         try {
-            const { data } = await axios.get(`${backendTestingStaffUrl}/waiting-results`, { headers: { tToken } });
+            let url = `${backendTestingStaffUrl}/waiting-results`;
+            if (status) {
+                url += `?status=${status}`;
+            }
+            const { data } = await axios.get(url, { headers: { tToken } });
             if (data.success) {
                 setWaitingResults(data.waitingResults);
                 console.log(data.waitingResults);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (e) {
+            toast.error(e.response.data.message || e.message);
+        }
+    }
+
+    const getTestingStaffProfile = async () => {
+        try {
+            const { data } = await axios.get(`${backendTestingStaffUrl}/profile`, { headers: { tToken } });
+            if (data.success) {
+                setTestingStaffProfile(data.testingStaffData);
+                console.log(data.testingStaffData);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (e) {
+            toast.error(e.response.data.message || e.message);
+        }
+    }
+
+    const getTestingStaffDashData = async () => {
+        try {
+            const { data } = await axios.get(`${backendTestingStaffUrl}/dashboard`, { headers: { tToken } });
+            if (data.success) {
+                setDashData(data.dashData);
+                console.log(data.dashData);
             } else {
                 toast.error(data.message);
             }
@@ -64,9 +97,12 @@ const TestingStaffContextProvider = ({ children }) => {
         getAllMedicalTests,
         pendingTests,
         getPendingTests,
-        profileData,
-        staffData: profileData,
-        setProfileData,
+        testingStaffProfile,
+        getTestingStaffProfile,
+        setTestingStaffProfile,
+        dashData,
+        setDashData,
+        getTestingStaffDashData,
         waitingResults,
         getWaitingResults
     };

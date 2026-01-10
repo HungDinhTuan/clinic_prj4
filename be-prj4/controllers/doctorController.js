@@ -7,7 +7,9 @@ import medicalTestModel from '../models/medicalTestModel.js'
 import testingStaffModel from '../models/testingStaffModel.js'
 import userModel from '../models/userModel.js'
 import medicineModel from '../models/medicineModel.js'
+import { updateDoctorSlots } from './userController.js'
 
+// api to change doctor availablity
 const changeAvailablityD = async (req, res) => {
     try {
         const { docId } = req.body;
@@ -28,6 +30,7 @@ const changeAvailablityD = async (req, res) => {
     }
 }
 
+// api to get list of doctors
 const doctorList = async (req, res) => {
     try {
         const doctors = await doctorModel.find({/*available: true*/ }).select(['-password', '-email']);
@@ -238,6 +241,7 @@ const updateDoctorProfile = async (req, res) => {
     }
 }
 
+// api create diagnosis for doctor panel
 const createDiagnosis = async (req, res) => {
     try {
         const { symptons, diagnosis, testIds, appointmentId, notes } = req.body;
@@ -283,6 +287,7 @@ const createDiagnosis = async (req, res) => {
         // assign tests to testing staffs
         let orderedTests = [];
         let errors = [];
+        let totalPriceTest = 0;
         if (testIds && testIds.length > 0) {
             for (const testId of testIds) {
                 const testData = await medicalTestModel.findById(testId);
@@ -326,6 +331,7 @@ const createDiagnosis = async (req, res) => {
                     status: 'pending'
                 };
                 orderedTests.push(orderedTest);
+                totalPriceTest += testData.price;
             }
         }
 
@@ -339,6 +345,7 @@ const createDiagnosis = async (req, res) => {
 
         const medicalRecordData = {
             doctorId: docData._id,
+            doctorData: docData,
             userId,
             symptons,
             diagnosis,
@@ -347,7 +354,8 @@ const createDiagnosis = async (req, res) => {
             slotTime: appointmentData.slotTime,
             userData,
             orderedTests,
-            notes
+            notes,
+            totalPriceTest
         };
 
         const newMedicalRecord = new medicalRecordModel(medicalRecordData);
@@ -406,14 +414,22 @@ const getMedicalTestsDone = async (req, res) => {
     }
 }
 
+// function to convert 24-hour format to 12-hour format with AM/PM
+const convertTo12HourFormat = (timeStr) => {
+    const [hour, minute] = timeStr.split(':').map(Number);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`;
+};
+
 // api prescribe medicines for doctor panel
 const prescribedMedicines = async (req, res) => {
     try {
-        const { medicalRecordId, medicines, followUpDate } = req.body;
+        const { medicalRecordId, medicines, followUpDate, slotTime } = req.body;
         const doctorData = req.doctor;
         // console.log(medicines);
 
-        if (!medicalRecordId || !medicines || medicines.length === 0 || !followUpDate) {
+        if (!medicalRecordId || !medicines || medicines.length === 0) {
             return res.status(403).json({
                 success: false,
                 message: "Missing details."
@@ -465,7 +481,9 @@ const prescribedMedicines = async (req, res) => {
             });
         }
         medicalRecordData.prescribedMedicines = prescribedMedicines;
-        medicalRecordData.followUpDate = followUpDate;
+        if (followUpDate) {
+            medicalRecordData.followUpdate = followUpDate;
+        }
         medicalRecordData.isCompleted = true;
         // medicalRecordData.findByIdAndUpdate(medicalRecordId, { prescribedMedicines, followUpDate });
         await medicalRecordData.save();
@@ -477,6 +495,38 @@ const prescribedMedicines = async (req, res) => {
             path: 'userId',
             select: 'name image dob phone gender'
         });
+
+        // Ensure userId is extracted correctly (might be object or string after populate)
+        const userId = typeof currentMedicalRecord.userId === 'object'
+            ? currentMedicalRecord.userId._id
+            : currentMedicalRecord.userId;
+
+        const userData = await userModel.findById(userId);
+        if (!userData) {
+            return res.status(403).json({
+                success: false,
+                message: "User data not found for follow-up appointment."
+            });
+        }
+
+        if (followUpDate || slotTime) {
+            const newAppointment = new appointmentModel({
+                userId: userId,
+                docId: doctorData._id,
+                slotDate: convertFollowUpDateToSlotDate(followUpDate),
+                slotTime,
+                amount: doctorData.fees,
+                docData: doctorData,
+                userData
+            });
+
+            const updatedSlots = updateDoctorSlots(doctorData, convertFollowUpDateToSlotDate(followUpDate), slotTime);
+            doctorData.slots_booked = updatedSlots;
+            await Promise.all([
+                newAppointment.save(),
+                doctorData.save()
+            ]);
+        }
 
         res.status(200).json({
             success: true,
@@ -499,12 +549,18 @@ const parseDateToSlotDate = (isoDate) => {
     return `${parseInt(day)}_${parseInt(month)}_${year}`;
 };
 
+// convert follow-up date from ISO format (YYYY-MM-DD) to slotDate format (day_month_year)
+const convertFollowUpDateToSlotDate = (followUpDate) => {
+    if (!followUpDate) return null;
+    return parseDateToSlotDate(followUpDate);
+};
+
 // api get waiting patients for doctor panel
 const getWaitingPatients = async (req, res) => {
     try {
         const docData = req.doctor;
         const docId = docData._id;
-        const { date } = req.query; // Get date parameter from query string (format: day_month_year)
+        const { date, isCompleted } = req.query; // Get date parameter from query string (format: day_month_year)
 
         const slotDate = parseDateToSlotDate(date);
         // Get appointments for the doctor
@@ -525,7 +581,10 @@ const getWaitingPatients = async (req, res) => {
             return dateA - dateB;
         });
 
-        const medicalRecords = await medicalRecordModel.find({ doctorId: docId, isCompleted: false }).populate({
+        const medicalRecords = await medicalRecordModel.find({
+            doctorId: docId,
+            isCompleted: isCompleted === 'true' ? true : isCompleted === 'false' ? false : false
+        }).populate({
             path: 'userId',
             select: 'name image dob phone gender'
         });
@@ -584,4 +643,32 @@ const getWaitingPatients = async (req, res) => {
     }
 }
 
-export { changeAvailablityD, doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients, getMedicalTestsDone };
+// get medical record by userId and isCompleted true
+const getMedicalRecordsDoneByUserId = async (req, res) => {
+    try {
+        const doctorData = req.doctor;
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "User ID is required."
+            });
+        }
+
+        const medicalRecords = await medicalRecordModel.find({ doctorId: doctorData._id, userId, isCompleted: true });
+
+        res.status(200).json({
+            success: true,
+            medicalRecords
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).send({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+export { changeAvailablityD, doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients, getMedicalTestsDone, getMedicalRecordsDoneByUserId, parseDateToSlotDate };

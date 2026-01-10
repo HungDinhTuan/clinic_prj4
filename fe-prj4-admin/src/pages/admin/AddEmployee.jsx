@@ -9,9 +9,12 @@ const AddEmployee = () => {
 
     const [state, setState] = useState('Doctor');
     const [doctorImage, setDoctorImage] = useState(false);
+    const [testingStaffImage, setTestingStaffImage] = useState(false);
+    const [nurseImage, setNurseImage] = useState(false);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [fees, setFees] = useState('');
     const [degree, setDegree] = useState('');
     const [address1, setAddress1] = useState('');
@@ -19,7 +22,6 @@ const AddEmployee = () => {
     const [experince, setExperience] = useState('1');
     const [speciality, setSpeciality] = useState('General physician');
     const [about, setAbout] = useState('');
-    const [testingStaffImage, setTestingStaffImage] = useState(false);
     const [department, setDepartment] = useState('Hematology');
     const [qualification, setQualification] = useState('');
 
@@ -108,6 +110,43 @@ const AddEmployee = () => {
                 } else {
                     toast.error(data.message);
                 }
+            } else if (state === 'Nurse') {
+                if (!nurseImage) {
+                    toast.error("Please upload nurse image.");
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('email', email);
+                formData.append('password', password);
+                formData.append('speciality', speciality);
+                formData.append('degree', degree);
+                formData.append('address', JSON.stringify({ line1: address1, line2: address2 }));
+                formData.append('experience', experince + " " + displayYear);
+                formData.append('about', about);
+                formData.append('image', nurseImage);
+
+                formData.forEach((value, key) => {
+                    console.log(key, value);
+                })
+
+                const { data } = await axios.post(`${backendUrl}/add-nurse`, formData, { headers: { aToken } });
+
+                if (data.success) {
+                    toast.success(data.message);
+                    setNurseImage(false);
+                    setName('');
+                    setEmail('');
+                    setPassword('');
+                    setSpeciality('General physician');
+                    setDegree('');
+                    setAddress1('');
+                    setAddress2('');
+                    setExperience('1');
+                    setAbout('');
+                } else {
+                    toast.error(data.message);
+                }
             }
         } catch (err) {
             toast.error(err.response && err.response.data && err.response.data.message
@@ -152,11 +191,11 @@ const AddEmployee = () => {
             <div className='bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden'>
                 {/* Image Upload Section */}
                 <div className='p-8 border-b border-gray-200 bg-gray-50'>
-                    <label htmlFor={state === 'Doctor' ? "doc-img" : "staff-img"} className='flex items-center gap-6 cursor-pointer group'>
+                    <label htmlFor={state === 'Doctor' ? "doc-img" : state === 'Testing Staff' ? "staff-img" : "nurse-img"} className='flex items-center gap-6 cursor-pointer group'>
                         <div className='relative'>
                             <img
                                 className='w-24 h-24 rounded-xl object-cover ring-4 ring-gray-200 group-hover:ring-primary transition-all duration-300'
-                                src={state === 'Doctor' ? (doctorImage ? URL.createObjectURL(doctorImage) : assets.upload_area) : (testingStaffImage ? URL.createObjectURL(testingStaffImage) : assets.upload_area)}
+                                src={state === 'Doctor' ? (doctorImage ? URL.createObjectURL(doctorImage) : assets.upload_area) : state === 'Testing Staff' ? (testingStaffImage ? URL.createObjectURL(testingStaffImage) : assets.upload_area) : (nurseImage ? URL.createObjectURL(nurseImage) : assets.upload_area)}
                                 alt="Profile"
                             />
                             <div className='absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-xl transition-colors duration-300 flex items-center justify-center'>
@@ -168,7 +207,7 @@ const AddEmployee = () => {
                             <p className='text-sm text-gray-600 mt-1'>Click to upload a profile picture (JPG, PNG)</p>
                         </div>
                     </label>
-                    <input onChange={(e) => state === 'Doctor' ? setDoctorImage(e.target.files[0]) : setTestingStaffImage(e.target.files[0])} type="file" id={state === 'Doctor' ? "doc-img" : "staff-img"} hidden />
+                    <input onChange={(e) => state === 'Doctor' ? setDoctorImage(e.target.files[0]) : state === 'Testing Staff' ? setTestingStaffImage(e.target.files[0]) : setNurseImage(e.target.files[0])} type="file" id={state === 'Doctor' ? "doc-img" : state === 'Testing Staff' ? "staff-img" : "nurse-img"} hidden />
                 </div>
 
                 {/* Form Fields */}
@@ -186,6 +225,7 @@ const AddEmployee = () => {
                                 >
                                     <option value="Doctor">Doctor</option>
                                     <option value="Testing Staff">Testing Staff</option>
+                                    <option value="Nurse">Nurse</option>
                                 </select>
                             </div>
 
@@ -218,14 +258,32 @@ const AddEmployee = () => {
                             {/* Password */}
                             <div>
                                 <label className='block text-sm font-bold text-gray-800 mb-2'>{state} Password</label>
-                                <input
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    value={password}
-                                    className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
-                                    type="password"
-                                    placeholder='Enter secure password'
-                                    required
-                                />
+                                <div className='relative'>
+                                    <input
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        value={password}
+                                        className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all pr-12'
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder='Enter secure password'
+                                        required
+                                    />
+                                    <button
+                                        type='button'
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-primary transition-colors duration-200 p-1'
+                                        title={showPassword ? 'Hide password' : 'Show password'}
+                                    >
+                                        {showPassword ? (
+                                            <svg className='w-5 h-5' fill='currentColor' viewBox='0 0 24 24'>
+                                                <path d='M12 5C5.636 5 2.067 9.175 1.233 10.667a1.5 1.5 0 000 2.666C2.067 14.825 5.636 19 12 19c6.364 0 9.933-4.175 10.767-5.667a1.5 1.5 0 000-2.666C21.933 9.175 18.364 5 12 5zm0 9a3 3 0 110-6 3 3 0 010 6z' />
+                                            </svg>
+                                        ) : (
+                                            <svg className='w-5 h-5' fill='currentColor' viewBox='0 0 24 24'>
+                                                <path d='M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88' strokeWidth={1.5} stroke='currentColor' fill='none' strokeLinecap='round' strokeLinejoin='round' />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Experience */}
@@ -306,7 +364,7 @@ const AddEmployee = () => {
                                         />
                                     </div>
                                 </>
-                            ) : (
+                            ) : state === 'Testing Staff' ? (
                                 <>
                                     {/* Department */}
                                     <div>
@@ -334,6 +392,38 @@ const AddEmployee = () => {
                                             className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
                                             type="text"
                                             placeholder='e.g. BSc, MSc'
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Speciality for Nurse */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-2'>Speciality</label>
+                                        <select
+                                            onChange={(e) => setSpeciality(e.target.value)}
+                                            value={speciality}
+                                            className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                        >
+                                            <option value="General physician">General physician</option>
+                                            <option value="Gynecologist">Gynecologist</option>
+                                            <option value="Dermatologist">Dermatologist</option>
+                                            <option value="Pediatricians">Pediatricians</option>
+                                            <option value="Neurologist">Neurologist</option>
+                                            <option value="Gastroenterologist">Gastroenterologist</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Degree for Nurse */}
+                                    <div>
+                                        <label className='block text-sm font-bold text-gray-800 mb-2'>Qualification/Degree</label>
+                                        <input
+                                            onChange={(e) => setDegree(e.target.value)}
+                                            value={degree}
+                                            className='w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all'
+                                            type="text"
+                                            placeholder='e.g. BSN, RN'
                                             required
                                         />
                                     </div>

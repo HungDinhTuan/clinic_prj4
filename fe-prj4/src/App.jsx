@@ -15,7 +15,7 @@ import MyMedicalRecords from './pages/MyMedicalRecords'
 
 const App = () => {
   return (
-    <div className='mx-4 sm:mx-[10%]'>
+    <div className='mx-4 sm:mx-[10%] bg-gray-50 min-h-screen'>
       <ToastContainer />
       <Navbar />
       <Routes>

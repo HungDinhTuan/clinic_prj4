@@ -11,6 +11,7 @@ const AdminContextProvider = ({ children }) => {
   const [adminImage, setAdminImage] = useState('');
   const [allDoctors, setAllDoctors] = useState([]);
   const [allTestingStaffs, setAllTestingStaffs] = useState([]);
+  const [allNurses, setAllNurses] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [medicalTests, setMedicalTests] = useState([]);
@@ -131,6 +132,17 @@ const AdminContextProvider = ({ children }) => {
     }
   };
 
+  const getAllNurses = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/all-nurses`, { headers: { aToken } });
+      if (data.success) {
+        setAllNurses(data.nurses);
+      }
+    } catch (e) {
+      toast.error(e.response.data.message || e.message);
+    }
+  };
+
   const changeAvailabilityTestingStaff = async (testingStaffId) => {
     try {
       const { data } = await axios.put(`${backendUrl}/change-availability-testing-staff`, { testingStaffId }, { headers: { aToken } });
@@ -158,6 +170,8 @@ const AdminContextProvider = ({ children }) => {
     changeAvailability,
     allTestingStaffs,
     getAllTestingStaffs,
+    allNurses,
+    getAllNurses,
     changeAvailabilityTestingStaff,
     appointments,
     setAppointments,

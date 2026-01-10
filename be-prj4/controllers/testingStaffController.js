@@ -75,6 +75,87 @@ const loginTestingStaff = async (req, res) => {
     }
 }
 
+// api testing staff profile
+const getTestingStaffProfile = async (req, res) => {
+    try {
+        const testingStaffData = req.testingStaff;
+
+        res.status(200).json({
+            success: true,
+            testingStaffData
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+// api update testing staff profile
+const updateTestingStaffProfile = async (req, res) => {
+    try {
+        const testingStaffData = req.testingStaff;
+        const testingStaffId = testingStaffData._id;
+        const {address, available} = req.body;
+
+        await testingStaffModel.findByIdAndUpdate(testingStaffId, {address, available});
+
+        res.status(200).json({
+            success: true,
+            message: "Testing staff profile updated successfully."
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({
+            success: false,
+            message: e.message
+        });
+    }
+};
+
+// api get dashboard data for testing staff
+const getTestingStaffDashData = async (req, res) => {
+    try {
+        const testingStaffData = req.testingStaff;
+        const testingStaffId = testingStaffData._id;
+
+        const medicalRecords = await medicalRecordModel.find({ "orderedTests.performedId": testingStaffId });
+
+        let totalTests = [];
+        let completedTests = 0;
+        let earnings = 0;
+
+        for (const record of medicalRecords) {
+            for (const test of record.orderedTests) {
+                if (test.performedId.toString() === testingStaffId.toString()) {
+                    totalTests.push(test);
+                    earnings += test ? test.medicalTestData.price : 0;
+                    if (test.status === 'completed') {
+                        completedTests += 1;
+                    }
+                }
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            dashData: {
+                totalTests,
+                completedTests,
+                earnings
+            }
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({
+            success: false,
+            message: e.message
+        });
+    }
+};
+
 //api get pending tests for testing staff
 const getPendingTests = async (req, res) => {
     try {
@@ -197,16 +278,24 @@ const getWaitingResults = async (req, res) => {
     try {
         const testingStaffData = req.testingStaff;
         const testingStaffId = testingStaffData._id;
+        const { status } = req.query; // Get status parameter from query string ('in-progress' or 'completed')
+
+        // Determine which status to filter by
+        let testStatus = 'in-progress'; // default
+        if (status === 'completed') {
+            testStatus = 'completed';
+        }
+
         const medicalRecords = await medicalRecordModel.find({
             "orderedTests.performedId": testingStaffId,
-            "orderedTests.status": 'in-progress'
+            "orderedTests.status": testStatus
         });
 
         const waitingResults = [];
         const errors = [];
         for (const record of medicalRecords) {
             for (const test of record.orderedTests) {
-                if (test.performedId?.toString() === testingStaffId.toString() && test.status === 'in-progress') {
+                if (test.performedId?.toString() === testingStaffId.toString() && test.status === testStatus) {
                     const medicalTestInfo = await medicalTestModel.findById(test.testId);
                     if (!medicalTestInfo) {
                         errors.push(`Medical test with ID ${test.testId} not found.`);
@@ -233,7 +322,8 @@ const getWaitingResults = async (req, res) => {
                         notes: record.notes,
                         testId: test._id,
                         performedId: test.performedId,
-                        etc: test.etc
+                        etc: test.etc,
+                        testStatus: test.status
                     });
                 }
             }
@@ -248,11 +338,59 @@ const getWaitingResults = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            waitingResults
+            waitingResults,
+            selectedStatus: testStatus
         });
     } catch (e) {
         console.log(e);
         res.status(500).json({
+            success: false,
+            message: e.message
+        });
+    }
+};
+
+// api show detail test result by id
+const getDetailTestResultById = async (req, res) => {
+    try {
+        const { medicalRecordId, testId } = req.body;
+        const testingStaffData = req.testingStaff;
+
+        if (!medicalRecordId || !testId) {
+            return res.status(400).json({
+                success: false,
+                message: "Required fields missing."
+            });
+        }
+
+        const medicalRecordData = await medicalRecordModel.findById(medicalRecordId);
+        if (!medicalRecordData) {
+            return res.status(404).json({
+                success: false,
+                message: "Medical record does not exist."
+            });
+        }
+
+        let testData = medicalRecordData.orderedTests.find(test => test._id.toString() === testId && test.performedId.toString() === testingStaffData._id.toString());
+        if (!testData) {
+            return res.status(404).json({
+                success: false,
+                message: "Test not found for this testing staff."
+            });
+        }
+
+        const userData = medicalRecordData.userData;
+        const doctorData = medicalRecordData.doctorData;
+
+        testData = { ...testData._doc, userData, doctorData };
+
+        res.status(200).json({
+            success: true,
+            testData
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({  
             success: false,
             message: e.message
         });
@@ -336,4 +474,4 @@ const assignDetailsMedicalTest = async (req, res) => {
     }
 };
 
-export { changeAvailablityTS, loginTestingStaff, getPendingTests, getWaitingResults, assignDetailsMedicalTest, receivingMedicalTest };
+export { changeAvailablityTS, loginTestingStaff, getPendingTests, getWaitingResults, assignDetailsMedicalTest, receivingMedicalTest, getDetailTestResultById, getTestingStaffProfile, getTestingStaffDashData, updateTestingStaffProfile };

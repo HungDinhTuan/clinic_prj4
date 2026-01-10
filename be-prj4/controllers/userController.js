@@ -533,29 +533,59 @@ const findDoctorWithAI = async (req, res) => {
 const listAppointments = async (req, res) => {
     try {
         const userData = req.user;
-        // console.log('list appointments user : ',userData);
 
-        const appointments = await appointmentModel.find({ userId: userData.id, cancelled: false })
+        // Fetch all non-cancelled appointments for the user
+        const appointments = await appointmentModel.find({
+            userId: userData.id,
+            cancelled: false,
+            isCompleted: { $ne: "completed" }
+        });
 
-        if (!appointments) {
-            return res.status(400).json({
-                success: false,
-                message: "Missing booking information"
+        // If no appointments, return empty array
+        if (appointments.length === 0) {
+            return res.json({
+                success: true,
+                appointments: []
             });
         }
 
+        // Fetch pending medical records for this user
+        const medicalRecords = await medicalRecordModel.find({
+            userId: userData.id,
+            isCompleted: false
+        });
+
+        // Create a Map for quick lookup: appointmentId -> medicalRecord (O(m) instead of O(n*m))
+        const medicalRecordMap = new Map();
+        medicalRecords.forEach(record => {
+            medicalRecordMap.set(record.appointmentId.toString(), record);
+        });
+
+        // Merge appointments with their pending medical records (if any)
+        const appointmentsWithRecords = appointments.map(appointment => {
+            const appointmentObj = appointment.toObject();
+            const pendingRecord = medicalRecordMap.get(appointment._id.toString());
+
+            // Only add pendingMedicalRecord if it exists
+            if (pendingRecord) {
+                appointmentObj.pendingMedicalRecord = pendingRecord;
+            }
+
+            return appointmentObj;
+        });
+
         res.json({
             success: true,
-            appointments
-        })
+            appointments: appointmentsWithRecords
+        });
     } catch (e) {
         console.log(e);
         res.status(500).json({
             success: false,
             message: e.message
-        })
+        });
     }
-}
+};
 
 // api cancel appointment
 const cancelAppointment = async (req, res) => {
@@ -618,7 +648,7 @@ const cancelAppointment = async (req, res) => {
 const getMedicalRecordByUserId = async (req, res) => {
     try {
         const userData = req.user;
-        const medicalRecords = await medicalRecordModel.find({ userId: userData.id })
+        const medicalRecords = await medicalRecordModel.find({ userId: userData.id, isCompleted: true })
             .sort({ createdAt: -1 })
             .populate({ path: 'doctorId', select: 'name speciality image' })
             .populate({ path: 'orderedTests.testId', select: 'name price category' })
@@ -637,4 +667,4 @@ const getMedicalRecordByUserId = async (req, res) => {
     }
 };
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointments, cancelAppointment, findDoctorWithAI, getMedicalRecordByUserId };
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointments, cancelAppointment, findDoctorWithAI, getMedicalRecordByUserId, updateDoctorSlots };

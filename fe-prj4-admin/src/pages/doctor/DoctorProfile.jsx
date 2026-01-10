@@ -8,15 +8,15 @@ import { toast } from 'react-toastify';
 
 const DoctorProfile = () => {
 
-  const { backendDocUrl, dToken, profileData, setProfileData, getProfileData } = useContext(DoctorContext);
+  const { backendDocUrl, dToken, doctorData, setDoctorData, getDoctorData } = useContext(DoctorContext);
 
   const [isEdit, setIsEdit] = useState(false);
 
   const updateProfile = async () => {
     try {
       const updateData = {
-        address: profileData.address,
-        available: profileData.available
+        address: doctorData.address,
+        available: doctorData.available
       }
 
       const { data } = await axios.put(`${backendDocUrl}/update-profile`, updateData, { headers: { dToken } });
@@ -24,7 +24,7 @@ const DoctorProfile = () => {
       if (data.success) {
         toast.success(data.message);
         setIsEdit(false);
-        getProfileData();
+        getDoctorData();
       } else {
         toast.error(data.message);
       }
@@ -35,11 +35,11 @@ const DoctorProfile = () => {
 
   useEffect(() => {
     if (dToken) {
-      getProfileData();
+      getDoctorData();
     }
   }, [dToken])
 
-  return profileData && (
+  return doctorData && (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-950 py-8 px-4 sm:px-8'>
       <div className='max-w-4xl mx-auto'>
         {/* Header */}
@@ -57,14 +57,14 @@ const DoctorProfile = () => {
               <div className='w-full aspect-square overflow-hidden rounded-xl mb-6 shadow-lg dark:shadow-xl'>
                 <img
                   className='w-full h-full object-cover hover:scale-105 transition-transform duration-300'
-                  src={profileData.image}
-                  alt={profileData.name}
+                  src={doctorData.image}
+                  alt={doctorData.name}
                 />
               </div>
               <div className='w-full space-y-2 text-center'>
-                <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>{profileData.name}</h2>
-                <p className='text-primary dark:text-blue-400 font-semibold'>{profileData.speciality}</p>
-                <p className='text-gray-600 dark:text-gray-400 text-sm'>{profileData.degree}</p>
+                <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>{doctorData.name}</h2>
+                <p className='text-primary dark:text-blue-400 font-semibold'>{doctorData.speciality}</p>
+                <p className='text-gray-600 dark:text-gray-400 text-sm'>{doctorData.degree}</p>
               </div>
             </div>
 
@@ -74,13 +74,13 @@ const DoctorProfile = () => {
               <div className='grid grid-cols-2 gap-4'>
                 <div className='bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800'>
                   <p className='text-gray-600 dark:text-gray-400 text-sm font-medium'>Experience</p>
-                  <p className='text-2xl font-bold text-primary dark:text-blue-400 mt-1'>{profileData.experience}</p>
+                  <p className='text-2xl font-bold text-primary dark:text-blue-400 mt-1'>{doctorData.experience}</p>
                 </div>
                 <div className='bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-100 dark:border-green-800'>
                   <p className='text-gray-600 dark:text-gray-400 text-sm font-medium'>Appointment Fee</p>
                   <p className='text-2xl font-bold text-green-600 dark:text-green-400 mt-1'>
                     <NumericFormat
-                      value={profileData.fees}
+                      value={doctorData.fees}
                       thousandSeparator="."
                       decimalSeparator=","
                       displayType="text"
@@ -94,22 +94,22 @@ const DoctorProfile = () => {
               <div>
                 <label className='block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2'>About</label>
                 <p className='text-gray-700 dark:text-gray-300 leading-relaxed text-base'>
-                  {profileData.about}
+                  {doctorData.about}
                 </p>
               </div>
 
               {/* Availability Status */}
               <div className='flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
                 <input
-                  onChange={() => isEdit && setProfileData(prev => ({ ...prev, available: !prev.available }))}
-                  checked={profileData.available}
+                  onChange={() => isEdit && setDoctorData(prev => ({ ...prev, available: !prev.available }))}
+                  checked={doctorData.available}
                   className='w-5 h-5 cursor-pointer accent-primary rounded'
                   type="checkbox"
                 />
                 <label className='cursor-pointer flex flex-col'>
                   <span className='font-medium text-gray-900 dark:text-white'>Availability Status</span>
                   <span className='text-sm text-gray-600 dark:text-gray-400'>
-                    {profileData.available ? '✓ Currently Available' : '✗ Not Available'}
+                    {doctorData.available ? '✓ Currently Available' : '✗ Not Available'}
                   </span>
                 </label>
               </div>
@@ -137,14 +137,14 @@ const DoctorProfile = () => {
                 {isEdit ? (
                   <input
                     type="text"
-                    onChange={(e) => setProfileData(prev => ({ ...prev, address: { ...prev.address, line1: e.target.value } }))}
-                    value={profileData.address.line1}
+                    onChange={(e) => setDoctorData(prev => ({ ...prev, address: { ...prev.address, line1: e.target.value } }))}
+                    value={doctorData.address.line1}
                     className='w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:border-primary dark:focus:border-blue-400 focus:ring-2 focus:ring-primary/10 dark:focus:ring-blue-400/20 transition-all'
                     placeholder='Enter street address'
                   />
                 ) : (
                   <p className='px-4 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white font-medium'>
-                    {profileData.address.line1}
+                    {doctorData.address.line1}
                   </p>
                 )}
               </div>
@@ -155,14 +155,14 @@ const DoctorProfile = () => {
                 {isEdit ? (
                   <input
                     type="text"
-                    onChange={(e) => setProfileData(prev => ({ ...prev, address: { ...prev.address, line2: e.target.value } }))}
-                    value={profileData.address.line2}
+                    onChange={(e) => setDoctorData(prev => ({ ...prev, address: { ...prev.address, line2: e.target.value } }))}
+                    value={doctorData.address.line2}
                     className='w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg focus:outline-none focus:border-primary dark:focus:border-blue-400 focus:ring-2 focus:ring-primary/10 dark:focus:ring-blue-400/20 transition-all'
                     placeholder='Enter city/district'
                   />
                 ) : (
                   <p className='px-4 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white font-medium'>
-                    {profileData.address.line2}
+                    {doctorData.address.line2}
                   </p>
                 )}
               </div>

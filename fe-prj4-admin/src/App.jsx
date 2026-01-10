@@ -21,14 +21,19 @@ import TestingStaffProfile from './pages/testingStaff/TestingStaffProfile.jsx';
 import { TestingStaffContext } from './context/TestingStaffContext.jsx';
 import TSMedicalTest from './pages/testingStaff/TestingStaffWaitingList.jsx';
 import TestingStaffWaitingResults from './pages/testingStaff/TestingStaffWaitingResults.jsx';
+import NurseDashboard from './pages/nurse/NurseDashboard.jsx';
+import NurserWaitingList from './pages/nurse/NurserWaitingList.jsx';
+import NurseProfile from './pages/nurse/NurseProfile.jsx';
+import { NurseContext } from './context/NurseContext.jsx';
 
 const App = () => {
 
   const { aToken } = useContext(AdminContext);
   const { dToken } = useContext(DoctorContext);
   const { tToken } = useContext(TestingStaffContext);
+  const { nToken } = useContext(NurseContext);
 
-  return aToken || dToken || tToken ?
+  return aToken || dToken || tToken || nToken ?
     (
       <div className='bg-[#F8F9FD] dark:bg-gray-950 h-screen flex flex-col'>
         <ToastContainer />
@@ -54,6 +59,10 @@ const App = () => {
               <Route path='/testing-staff/pending-tests' element={<TSMedicalTest />} />
               <Route path='/testing-staff/waiting-results' element={<TestingStaffWaitingResults />} />
               <Route path='/testing-staff/profile' element={<TestingStaffProfile />} />
+              {/* Nurse route */}
+              <Route path='/nurse/dashboard' element={<NurseDashboard />} />
+              <Route path='/nurse/waiting-list' element={<NurserWaitingList />} />
+              <Route path='/nurse/profile' element={<NurseProfile />} />
             </Routes>
           </div>
         </div>

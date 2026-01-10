@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { NumericFormat } from 'react-number-format'
 import { useNavigate } from 'react-router-dom';
 import { useRef } from 'react';
+import TabNavigation from '../components/TabNavigation';
 
 const MyAppointments = () => {
   const { backendURL, token, getDoctorsData } = useContext(AppContext);
@@ -187,12 +188,7 @@ const MyAppointments = () => {
 
   return appointments && (
     <div className='max-w-5xl mx-auto p-4'>
-      <div className="flex items-center justify-between mt-8 pb-4 border-b-2 border-gray-300">
-        <p className="font-bold text-2xl text-neutral-900">📋 My Appointments</p>
-        <p className="text-sm text-primary hover:underline cursor-pointer font-medium transition hover:text-primary-dark">
-          <a href="/my-medical-records">📄 Medical Records</a>
-        </p>
-      </div>
+      <TabNavigation />
       <div className='space-y-4 mt-6'>
         {
           appointments.length > 0 ? (
@@ -252,11 +248,11 @@ const MyAppointments = () => {
                       📅 <span className='text-neutral-800'>{slotDateFormat(item.slotDate)} | {item.slotTime}</span>
                     </p>
                   </div>
-                  <div className='flex flex-col gap-3 justify-end sm:min-w-56'>
+                  <div className='flex flex-col gap-2 justify-end sm:min-w-56'>
                     {
                       item.payment
                         ? (
-                          <button className='w-full px-4 py-3 text-base font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 transition-all duration-200 cursor-default shadow-sm'>
+                          <button className='w-full px-3 py-2 text-sm font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 transition-all duration-200 cursor-default shadow-sm'>
                             ✓ Payment Successful
                           </button>
                         )
@@ -264,13 +260,13 @@ const MyAppointments = () => {
                           <>
                             <button
                               onClick={() => openPaymentPopup(item._id)}
-                              className='w-full px-4 py-3 text-base font-semibold text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md'
+                              className='w-full px-3 py-2 text-sm font-semibold text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md'
                             >
                               💳 Pay Online
                             </button>
                             <button
                               onClick={() => { setSelectedId(item._id); setShowConfirm(true); }}
-                              className='w-full px-4 py-3 text-base font-semibold text-red-600 border-2 border-red-200 rounded-lg hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md'
+                              className='w-full px-3 py-2 text-sm font-semibold text-red-600 border-2 border-red-200 rounded-lg hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md'
                             >
                               ✕ Cancel
                             </button>

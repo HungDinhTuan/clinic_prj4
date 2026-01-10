@@ -8,6 +8,7 @@ import doctorRoute from './routes/doctorRoute.js';
 import userRouter from './routes/userRoute.js';
 import paymentRoute from './routes/paymentRoute.js'
 import testingStaffRoute from './routes/testingStaffRoute.js';
+import nurseRoute from './routes/nurseRoute.js';
 
 //api config
 const app = express();
@@ -28,6 +29,7 @@ app.use('/api/admin', adminRoute);
 app.use('/api/doctor', doctorRoute);
 app.use('/api/testing-staff', testingStaffRoute);
 app.use('/api/user', userRouter);
+app.use('/api/nurse', nurseRoute);
 app.use('/api/payment', paymentRoute);
 
 app.listen(port, () => console.log("Server started : ", port));

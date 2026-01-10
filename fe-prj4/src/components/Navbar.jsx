@@ -22,7 +22,7 @@ const Navbar = () => {
     <div className='sticky top-0 z-40 bg-white shadow-lg border-b-2 border-gray-100 rounded-2xl'>
       <div className='flex items-center justify-between text-sm px-4 md:px-10 py-4'>
         <img onClick={() => { navigate('/') }} className='w-44 cursor-pointer hover:opacity-80 transition-opacity duration-300' src={assets.logo1} alt="Trust Me Clinic Logo" />
-        <ul className='hidden md:flex items-center gap-8 font-semibold'>
+        <ul className='hidden md:flex items-center gap-8 font-semibold text-base'>
           <NavLink to="/" className={({ isActive }) => `relative group py-2 transition-colors duration-300 ${isActive ? 'text-primary' : 'text-gray-700 hover:text-primary'}`}>
             <li>HOME</li>
             <hr className='border-none outline-none h-0.5 bg-primary w-0 group-hover:w-full transition-all duration-300 absolute bottom-0' />

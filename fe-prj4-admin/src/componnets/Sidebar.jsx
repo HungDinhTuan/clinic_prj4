@@ -4,12 +4,14 @@ import { NavLink } from 'react-router-dom';
 import { assets } from '../assets/assets_admin/assets.js';
 import { DoctorContext } from '../context/DoctorContext.jsx';
 import { TestingStaffContext } from '../context/TestingStaffContext.jsx';
+import { NurseContext } from '../context/NurseContext.jsx';
 
 const Sidebar = () => {
 
   const { aToken } = useContext(AdminContext);
   const { dToken } = useContext(DoctorContext);
   const { tToken } = useContext(TestingStaffContext);
+  const { nToken } = useContext(NurseContext);
   const [isCollapsed, setIsCollapsed] = useState(localStorage.getItem('navbarCollapsed') === 'true');
 
   // Listen for collapse state changes
@@ -136,6 +138,32 @@ const Sidebar = () => {
           </NavLink>
         </ul>
       }
+      {
+        nToken && <ul className='text-gray-700 dark:text-gray-300 mt-6 space-y-1'>
+          <NavLink className={({ isActive }) =>
+            `flex items-center ${isCollapsed ? 'justify-center' : 'gap-4'} py-3 px-6 cursor-pointer font-medium transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800
+     ${isActive ? "bg-blue-50 dark:bg-blue-900 border-r-4 border-primary text-primary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"}`
+          } to={'/nurse/dashboard'} title='Dashboard'>
+            <img className='w-5 h-5' src={assets.home_icon} alt="Dashboard" />
+            <p className={`${isCollapsed ? 'hidden' : 'block'} text-sm`}>Dashboard</p>
+          </NavLink>
+          <NavLink className={({ isActive }) =>
+            `flex items-center ${isCollapsed ? 'justify-center' : 'gap-4'} py-3 px-6 cursor-pointer font-medium transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800
+     ${isActive ? "bg-blue-50 dark:bg-blue-900 border-r-4 border-primary text-primary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"}`
+          } to={'/nurse/waiting-list'} title='Waiting Results'>
+            <img className='w-5 h-5' src={assets.appointment_icon} alt="Waiting Results" />
+            <p className={`${isCollapsed ? 'hidden' : 'block'} text-sm`}>Waiting Results</p>
+          </NavLink>
+          <NavLink className={({ isActive }) =>
+            `flex items-center ${isCollapsed ? 'justify-center' : 'gap-4'} py-3 px-6 cursor-pointer font-medium transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800
+     ${isActive ? "bg-blue-50 dark:bg-blue-900 border-r-4 border-primary text-primary" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"}`
+          } to={'/nurse/profile'} title='Profile'>
+            <img className='w-5 h-5' src={assets.people_icon} alt="Profile" />
+            <p className={`${isCollapsed ? 'hidden' : 'block'} text-sm`}>Profile</p>
+          </NavLink>
+        </ul>
+      }
+      
     </div>
   )
 }

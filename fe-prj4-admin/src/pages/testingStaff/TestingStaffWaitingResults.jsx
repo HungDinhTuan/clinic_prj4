@@ -13,10 +13,13 @@ const TestingStaffWaitingResults = () => {
     const { backendTestingStaffUrl, tToken, waitingResults, getWaitingResults } = useContext(TestingStaffContext);
 
     const [showPopup, setShowPopup] = useState(false);
+    const [showTestDetail, setShowTestDetail] = useState(false);
     const [medicalRecordId, setMedicalRecordId] = useState('');
     const [result, setResult] = useState('');
     const [notes, setNotes] = useState('');
     const [images, setImages] = useState([]);
+    const [testResult, setTestResult] = useState('');
+    const [statusFilter, setStatusFilter] = useState('in-progress');
 
     const assignDetailsMedicalTest = async (e) => {
         e.preventDefault();
@@ -46,9 +49,24 @@ const TestingStaffWaitingResults = () => {
         }
     };
 
+    const getDetailTestResultById = async (medicalRecordId, testId) => {
+        try {
+            const { data } = await axios.post(`${backendTestingStaffUrl}/test-result`, { medicalRecordId, testId }, { headers: { tToken } });
+
+            if (data.success) {
+                setTestResult(data.testData);
+                console.log(data.testData);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (e) {
+            toast.error(e.response.data.message || e.message);
+        }
+    };
+
     useEffect(() => {
-        getWaitingResults();
-    }, [tToken]);
+        getWaitingResults(statusFilter);
+    }, [tToken, statusFilter]);
 
     return (
         <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 py-8'>
@@ -56,6 +74,42 @@ const TestingStaffWaitingResults = () => {
             <div className='mb-8'>
                 <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 mb-2'>Test Results Pending</h1>
                 <p className='text-gray-600 text-sm'>Add results and notes for medical tests received</p>
+            </div>
+
+            {/* Status Filter */}
+            <div className='mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200 shadow-lg'>
+                <div className='space-y-3'>
+                    <label className='text-sm font-bold text-gray-800 mb-3 flex items-center gap-2'>
+                        <svg className='w-5 h-5 text-blue-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' />
+                        </svg>
+                        Test Results Status
+                    </label>
+                    <div className='flex gap-4 flex-wrap'>
+                        <label className='flex items-center gap-3 cursor-pointer group'>
+                            <input
+                                type='radio'
+                                name='statusFilter'
+                                value='in-progress'
+                                checked={statusFilter === 'in-progress'}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className='w-5 h-5 cursor-pointer accent-blue-600'
+                            />
+                            <span className='text-sm font-semibold text-gray-700 group-hover:text-blue-600 transition-colors'>In Progress</span>
+                        </label>
+                        <label className='flex items-center gap-3 cursor-pointer group'>
+                            <input
+                                type='radio'
+                                name='statusFilter'
+                                value='completed'
+                                checked={statusFilter === 'completed'}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className='w-5 h-5 cursor-pointer accent-green-600'
+                            />
+                            <span className='text-sm font-semibold text-gray-700 group-hover:text-green-600 transition-colors'>Completed</span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             {/* Table Card */}
@@ -105,14 +159,14 @@ const TestingStaffWaitingResults = () => {
                                     <p className='flex justify-center items-center text-gray-700 text-sm truncate'>{item.notes}</p>
                                     <p className='flex justify-center items-center text-gray-700 text-sm'>{new Date(item.etc).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
                                     <div className='flex justify-center items-center'>
-                                        <button
-                                            onClick={() => { setMedicalRecordId(item.medicalRecordId); setShowPopup(true); }}
-                                            className='p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors'
-                                            title='Add results'
-                                        >
-                                            <img src={assets.details_medical_test_icon} alt="Add Results" className='w-5 h-5' />
-                                        </button>
-                                    </div>
+                                                <button
+                                                    onClick={() => { setMedicalRecordId(item.medicalRecordId); setShowPopup(true); }}
+                                                    className='p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors'
+                                                    title='Add results'
+                                                >
+                                                    <img src={assets.details_medical_test_icon} alt="Add Results" className='w-5 h-5' />
+                                                </button>
+                                            </div>
                                 </div>
                             ))
                         ) : (
@@ -204,6 +258,171 @@ const TestingStaffWaitingResults = () => {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )
+            }
+            {/* Test Result Details Popup */}
+            {
+                showTestDetail && testResult && (
+                    <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
+                        <div className='bg-white rounded-2xl w-full max-w-4xl shadow-2xl max-h-[90vh] overflow-y-auto animate-fadeIn border border-gray-200'>
+                            {/* Header */}
+                            <div className='sticky top-0 bg-gradient-to-r from-blue-50 to-blue-100 p-6 border-b border-gray-200 flex items-center justify-between'>
+                                <div>
+                                    <h2 className='text-2xl font-bold text-gray-900 mb-1'>🔬 Test Results Details</h2>
+                                    <p className='text-sm text-gray-600'>{testResult.medicalTestData?.name}</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowTestDetail(false)}
+                                    className='text-gray-600 hover:text-gray-900 text-3xl font-bold'
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            {/* Body */}
+                            <div className='p-8 space-y-8'>
+                                {/* Patient & Doctor Info */}
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                                    {/* Patient Card */}
+                                    <div className='bg-blue-50 rounded-xl p-6 border border-blue-200'>
+                                        <div className='flex items-center gap-4 mb-4'>
+                                            <img className='w-16 h-16 rounded-full ring-2 ring-blue-300' src={testResult.userData?.image} alt="" />
+                                            <div>
+                                                <p className='text-xs font-semibold text-blue-600 uppercase tracking-wide'>Patient</p>
+                                                <p className='text-lg font-bold text-gray-900'>{testResult.userData?.name}</p>
+                                            </div>
+                                        </div>
+                                        <div className='space-y-2 text-sm'>
+                                            <p><span className='font-semibold text-gray-700'>Email:</span> <span className='text-gray-600'>{testResult.userData?.email}</span></p>
+                                            <p><span className='font-semibold text-gray-700'>Phone:</span> <span className='text-gray-600'>{testResult.userData?.phone}</span></p>
+                                            <p><span className='font-semibold text-gray-700'>Gender:</span> <span className='text-gray-600'>{testResult.userData?.gender}</span></p>
+                                        </div>
+                                    </div>
+
+                                    {/* Doctor Card */}
+                                    <div className='bg-purple-50 rounded-xl p-6 border border-purple-200'>
+                                        <div className='flex items-center gap-4 mb-4'>
+                                            <img className='w-16 h-16 rounded-full ring-2 ring-purple-300' src={testResult.doctorData?.image} alt="" />
+                                            <div>
+                                                <p className='text-xs font-semibold text-purple-600 uppercase tracking-wide'>Consulting Doctor</p>
+                                                <p className='text-lg font-bold text-gray-900'>{testResult.doctorData?.name}</p>
+                                            </div>
+                                        </div>
+                                        <div className='space-y-2 text-sm'>
+                                            <p><span className='font-semibold text-gray-700'>Specialty:</span> <span className='text-gray-600'>{testResult.doctorData?.speciality}</span></p>
+                                            <p><span className='font-semibold text-gray-700'>Experience:</span> <span className='text-gray-600'>{testResult.doctorData?.experience}</span></p>
+                                            <p><span className='font-semibold text-gray-700'>Degree:</span> <span className='text-gray-600'>{testResult.doctorData?.degree}</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Test Info Grid */}
+                                <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                                    <div className='bg-gray-50 rounded-lg p-4 border border-gray-200'>
+                                        <p className='text-xs font-semibold text-gray-600 uppercase mb-1'>Status</p>
+                                        <div className='flex items-center gap-2'>
+                                            <span className='inline-block w-3 h-3 rounded-full bg-green-500'></span>
+                                            <span className='font-bold text-gray-900 capitalize'>{testResult.status}</span>
+                                        </div>
+                                    </div>
+                                    <div className='bg-gray-50 rounded-lg p-4 border border-gray-200'>
+                                        <p className='text-xs font-semibold text-gray-600 uppercase mb-1'>Price</p>
+                                        <p className='font-bold text-blue-600'>
+                                            <NumericFormat
+                                                value={testResult.medicalTestData?.price}
+                                                thousandSeparator="."
+                                                decimalSeparator=","
+                                                displayType="text"
+                                                suffix=" VND"
+                                            />
+                                        </p>
+                                    </div>
+                                    <div className='bg-gray-50 rounded-lg p-4 border border-gray-200'>
+                                        <p className='text-xs font-semibold text-gray-600 uppercase mb-1'>Turnaround Time</p>
+                                        <p className='font-bold text-gray-900'>{testResult.medicalTestData?.turnaroundTime} days</p>
+                                    </div>
+                                    <div className='bg-gray-50 rounded-lg p-4 border border-gray-200'>
+                                        <p className='text-xs font-semibold text-gray-600 uppercase mb-1'>Done Date</p>
+                                        <p className='font-bold text-gray-900 text-sm'>{new Date(testResult.testDoneAt).toLocaleDateString('vi-VN')}</p>
+                                    </div>
+                                </div>
+
+                                {/* Test Description */}
+                                <div className='bg-blue-50 rounded-xl p-6 border border-blue-200'>
+                                    <p className='text-sm font-bold text-gray-900 mb-3'>📖 Test Description</p>
+                                    <p className='text-sm text-gray-700 leading-relaxed'>{testResult.medicalTestData?.description}</p>
+                                </div>
+
+                                {/* Preparation & Normal Range */}
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                                    <div className='bg-orange-50 rounded-xl p-6 border border-orange-200'>
+                                        <p className='text-sm font-bold text-gray-900 mb-3'>⚠️ Preparation</p>
+                                        <p className='text-sm text-gray-700'>{testResult.medicalTestData?.preparation}</p>
+                                    </div>
+                                    <div className='bg-green-50 rounded-xl p-6 border border-green-200'>
+                                        <p className='text-sm font-bold text-gray-900 mb-3'>✓ Normal Range</p>
+                                        <p className='text-sm text-gray-700'>{testResult.medicalTestData?.normalRange}</p>
+                                    </div>
+                                </div>
+
+                                {/* Test Result */}
+                                <div className='bg-yellow-50 rounded-xl p-6 border border-yellow-200'>
+                                    <p className='text-sm font-bold text-gray-900 mb-3'>🧪 Test Result</p>
+                                    <div className='bg-white rounded-lg p-4 border border-yellow-200 max-h-48 overflow-y-auto'>
+                                        <p className='text-sm text-gray-700 whitespace-pre-wrap font-mono'>{testResult.result}</p>
+                                    </div>
+                                </div>
+
+                                {/* Medical Notes */}
+                                {testResult.notes && (
+                                    <div className='bg-gray-50 rounded-xl p-6 border border-gray-200'>
+                                        <p className='text-sm font-bold text-gray-900 mb-3'>📝 Medical Notes</p>
+                                        <div className='bg-white rounded-lg p-4 border border-gray-200 max-h-32 overflow-y-auto'>
+                                            <p className='text-sm text-gray-700'>{testResult.notes}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Result Images */}
+                                {testResult.images && testResult.images.length > 0 && (
+                                    <div className='border-t border-gray-200 pt-8'>
+                                        <p className='text-sm font-bold text-gray-900 mb-6'>🖼️ Result Images/Documents</p>
+                                        <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
+                                            {testResult.images.map((image, idx) => (
+                                                <div key={idx} className='group relative rounded-lg overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow'>
+                                                    <img
+                                                        src={image}
+                                                        alt={`Test result ${idx + 1}`}
+                                                        className='w-full h-48 object-cover'
+                                                    />
+                                                    <div className='absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100'>
+                                                        <a
+                                                            href={image}
+                                                            target='_blank'
+                                                            rel='noopener noreferrer'
+                                                            className='px-4 py-2 bg-white text-gray-900 rounded-lg font-semibold text-sm'
+                                                        >
+                                                            View Full
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className='sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 flex justify-end'>
+                                <button
+                                    onClick={() => setShowTestDetail(false)}
+                                    className='px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-all shadow-sm hover:shadow-md'
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )

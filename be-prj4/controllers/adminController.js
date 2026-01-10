@@ -9,6 +9,7 @@ import medicineModel from '../models/medicineModel.js'
 import medicalTestModel from '../models/medicalTestModel.js'
 import testingStaffModel from '../models/testingStaffModel.js'
 import { uploadToCloudinary } from '../utils/cloudinaryUpload.js'
+import nurseModel from '../models/nurseModel.js'
 
 //api for adding doctor
 const addDoctor = async (req, res) => {
@@ -45,7 +46,7 @@ const addDoctor = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // upload image to cloudinary using streamifier
-        const imageUpload = await uploadToCloudinary(imageFile.buffer, imageFile.originalname, { resource_type: "image" });
+        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
         const imageUrl = imageUpload.secure_url
 
         const doctorData = {
@@ -580,7 +581,7 @@ const addTestingStaff = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const imageUpload = await uploadToCloudinary(imageFile.buffer, imageFile.originalname, { resource_type: "image" });
+        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
         const imageUrl = imageUpload.secure_url;
 
         const testingStaffData = {
@@ -628,4 +629,89 @@ const getAllTestingStaff = async (req, res) => {
     }
 }
 
-export { addDoctor, loginAdmin, getAllDoctors, appointmentsAdmin, cancelAppointmentAdmin, adminDashboard, addMedicine, getAllMedicines, pagingMedicines, editMedicine, deleteMedicine, findMedicineById, addMedicalTest, getAllMedicalTests, pagingMedicalTests, editMedicalTest, findMedicalTestById, deleteMedicalTest, addTestingStaff, getAllTestingStaff }
+// api add nurse
+const addNurse = async (req, res) => {
+    try {
+        const { name, email, password, speciality, degree, experience, about, address } = req.body;
+        const imageFile = req.file;
+
+        if (!name || !email || !password || !speciality || !degree || !experience || !about || !address) {
+            return res.status(403).json({
+                success: false,
+                message: "Missing details."
+            });
+        }
+
+        if (!imageFile) {
+            return res.status(403).json({
+                success: false,
+                message: "Please upload nurse image."
+            });
+        }
+
+        if (!validator.isEmail(email)) {
+            return res.status(405).json({
+                success: false,
+                message: "Please enter a valid email."
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(403).json({
+                success: false,
+                message: "Password has been length than 8 characters."
+            });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
+        const imageUrl = imageUpload.secure_url;
+
+        const nurseData = {
+            name,
+            email,
+            image: imageUrl,
+            password: hashedPassword,
+            speciality,
+            degree,
+            experience,
+            about,
+            address: JSON.parse(address),
+            date: Date.now()
+        };
+
+        const newNurse = new nurseModel(nurseData);
+        await newNurse.save();
+
+        return res.json({
+            success: true,
+            message: "Nurse added"
+        });
+    } catch (e) {
+        console.log(e)
+        return res.status(400).json({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+const getAllNurses = async (req, res) => {
+    try {
+        const nurses = await nurseModel.find({}).select('-password');
+
+        return res.json({
+            success: true,
+            nurses
+        });
+    } catch (e) {
+        console.log(e)
+        return res.status(400).json({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+export { addDoctor, loginAdmin, getAllDoctors, appointmentsAdmin, cancelAppointmentAdmin, adminDashboard, addMedicine, getAllMedicines, pagingMedicines, editMedicine, deleteMedicine, findMedicineById, addMedicalTest, getAllMedicalTests, pagingMedicalTests, editMedicalTest, findMedicalTestById, deleteMedicalTest, addTestingStaff, getAllTestingStaff, addNurse, getAllNurses }

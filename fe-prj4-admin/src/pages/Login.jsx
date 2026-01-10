@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { DoctorContext } from '../context/DoctorContext.jsx';
 import { TestingStaffContext } from '../context/TestingStaffContext.jsx';
+import { NurseContext } from '../context/NurseContext.jsx';
 
 const Login = () => {
 
@@ -15,6 +16,7 @@ const Login = () => {
   const { setAToken, backendUrl } = useContext(AdminContext);
   const { setDToken, backendDocUrl } = useContext(DoctorContext);
   const { setTToken, backendTestingStaffUrl } = useContext(TestingStaffContext);
+  const { setNToken, backendNurseUrl } = useContext(NurseContext);
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
@@ -41,6 +43,14 @@ const Login = () => {
         if (data.success) {
           localStorage.setItem('tToken', data.token);
           setTToken(data.token);
+        } else {
+          toast.error(data.message)
+        }
+      } else if (state === 'Nurse') {
+        const { data } = await axios.post(`${backendNurseUrl}/login`, { email, password });
+        if (data.success) {
+          localStorage.setItem('nToken', data.token);
+          setNToken(data.token);
         } else {
           toast.error(data.message)
         }
@@ -81,6 +91,7 @@ const Login = () => {
                 <option value="Admin">Admin</option>
                 <option value="Doctor">Doctor</option>
                 <option value="Testing Staff">Testing Staff</option>
+                <option value="Nurse">Nurse</option>
               </select>
             </div>
 

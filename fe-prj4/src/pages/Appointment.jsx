@@ -43,11 +43,13 @@ const Appointment = () => {
   });
   const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+  // Fetch doctor info based on docId
   const fetchDocInfo = async () => {
     const docInfo = doctors?.find(doc => doc._id === docId) ?? null;
     setDocInfo(docInfo);
   };
 
+  // Get display text for selected custom date
   const getDisplayDateText = () => {
     if (!customDate) return 'More Dates';
 
@@ -56,6 +58,7 @@ const Appointment = () => {
     return `${dayOfWeek}\n${day}`;
   };
 
+  // create calendar days for date picker
   const generateCalendarDays = () => {
     const firstDay = new Date(pickerYear, pickerMonth, 1);
     const lastDay = new Date(pickerYear, pickerMonth + 1, 0);
@@ -77,6 +80,7 @@ const Appointment = () => {
     return days;
   };
 
+  // handle date selection from calendar
   const handleDateSelect = (day) => {
     if (!day) return;
 
@@ -117,6 +121,7 @@ const Appointment = () => {
     }
   };
 
+  // calculate available slots for the next 46 days
   const getAvailableSlots = async () => {
     const slots = [];
     const today = new Date();
@@ -182,10 +187,10 @@ const Appointment = () => {
 
       slots.push(timeSlots);
     }
-
     setDocSlots(slots);
   };
 
+  // handle booking appointment
   const bookAppointment = async () => {
     if (!token) {
       toast.warn('Login to book appointment.')
@@ -260,24 +265,29 @@ const Appointment = () => {
     }
   }
 
+  // Fetch doctor info when docId or doctors list changes
   useEffect(() => {
     fetchDocInfo();
   }, [docId, doctors]);
 
+  // Load user profile data on token change
   useEffect(() => {
     if (token && (!userData || Object.keys(userData).length === 0)) {
       loadUserProfileData();
     }
   }, [token]);
 
+  // Fetch available slots when docInfo changes
   useEffect(() => {
     getAvailableSlots();
   }, [docInfo]);
 
+  // log docSlots
   useEffect(() => {
     console.log(docSlots);
   }, [docSlots]);
 
+ // Reset slotTime when slotIndex or customDate changes
   useEffect(() => {
     setExpandedTimes(false);
     if (!customDate) {
