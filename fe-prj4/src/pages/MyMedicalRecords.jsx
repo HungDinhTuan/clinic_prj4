@@ -74,19 +74,45 @@ const MyMedicalRecords = () => {
             <div className='bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow p-6' key={index}>
               {/* Header - Doctor & Appointment Info */}
               <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-200'>
-                <div className='flex-1'>
-                  <p className='text-2xl font-bold text-neutral-900'>👨‍⚕️ {record.doctorData?.name || 'N/A'}</p>
-                  <p className='text-primary font-semibold mt-1'>{record.doctorData?.speciality || 'N/A'}</p>
-                </div>
-                <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
-                  <div className='flex flex-col gap-2 flex-1'>
-                    <div className={`inline-flex items-center justify-center w-fit px-3 py-1.5 rounded-full font-semibold text-sm ${record.isCompleted ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                      {record.isCompleted ? '✓ Completed' : '⏳ In Progress'}
+                {expandedRecords[record._id] ? (
+                  <div className='flex-1'>
+                    <div className='flex flex-col gap-2 flex-1'>
+                      <div className={`inline-flex items-center justify-center w-fit px-3 py-1.5 rounded-full font-semibold text-sm ${record.isCompleted ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                        {record.isCompleted ? '✓ Completed' : '⏳ In Progress'}
+                      </div>
+                      <p className='text-sm text-gray-600 font-medium'>
+                        📅 {slotDateFormat(record.slotDate)} | {record.slotTime}
+                      </p>
                     </div>
-                    <p className='text-sm text-gray-600 font-medium'>
-                      📅 {slotDateFormat(record.slotDate)} | {record.slotTime}
-                    </p>
                   </div>
+                ) : (
+                  <div className='flex-1'>
+                    <p className='text-sm font-semibold text-gray-700 mb-2'>📋 Summary</p>
+                    <div className='space-y-1'>
+                      {record.orderedTests && record.orderedTests.length > 0 && (
+                        <p className='text-sm text-gray-600'>🔬 Tests: <span className='font-semibold text-gray-900'>{record.orderedTests.length}</span></p>
+                      )}
+                      {record.prescribedMedicines && record.prescribedMedicines.length > 0 && (
+                        <p className='text-sm text-gray-600'>💊 Medicines: <span className='font-semibold text-gray-900'>{record.prescribedMedicines.length}</span></p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
+                  {
+                    expandedRecords[record._id]
+                      ? null
+                      : (
+                        <div className='flex flex-col gap-2 flex-1'>
+                          <div className={`inline-flex items-center justify-center w-fit px-3 py-1.5 rounded-full font-semibold text-sm ${record.isCompleted ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {record.isCompleted ? '✓ Completed' : '⏳ In Progress'}
+                          </div>
+                          <p className='text-sm text-gray-600 font-medium'>
+                            📅 {slotDateFormat(record.slotDate)} | {record.slotTime}
+                          </p>
+                        </div>
+                      )
+                  }
                   <button
                     onClick={() => toggleRecord(record._id)}
                     className={`px-3 py-1.5 rounded-xl font-bold transition-all duration-300 whitespace-nowrap border-2 text-base flex items-center justify-center gap-2 ${expandedRecords[record._id]
@@ -100,32 +126,100 @@ const MyMedicalRecords = () => {
                 </div>
               </div>
 
+              {/* Ordered Tests - Always Visible */}
+              {record.orderedTests && record.orderedTests.length > 0 && (
+                <div className='mt-6 bg-gray-50 rounded-xl p-5 border border-gray-200'>
+                  <p className='text-sm font-bold text-gray-900 mb-4'>🔬 Ordered Tests</p>
+                  <div className='space-y-3'>
+                    {record.orderedTests.map((test, idx) => (
+                      <div key={idx} className='bg-white p-4 rounded-lg border border-gray-100 hover:shadow-md transition-shadow'>
+                        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                          <div className='flex-1'>
+                            <p className='font-semibold text-gray-900'>{test.medicalTestData?.name || 'N/A'}</p>
+                            <p className='text-xs text-gray-500 mt-1'>Status: <span className={`font-semibold ${test.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{test.status}</span></p>
+                          </div>
+                          <div className='flex flex-col gap-2'>
+                            <div className='text-right'>
+                              <p className='text-xs text-gray-600'>Price</p>
+                              <p className='font-bold text-primary'>
+                                <NumericFormat
+                                  value={test.medicalTestData?.price || 0}
+                                  displayType={'text'}
+                                  thousandSeparator={true}
+                                  suffix={' VND'}
+                                />
+                              </p>
+                            </div>
+                            {test.result && (
+                              <div className='text-right'>
+                                <p className='text-xs text-gray-600'>Result</p>
+                                <p className='font-semibold text-gray-900'>{test.result}</p>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => openTestDetail(test)}
+                            className='px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-blue-700 transition-all text-sm'
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Prescribed Medicines - Always Visible */}
+              {record.prescribedMedicines && record.prescribedMedicines.length > 0 && (
+                <div className='mt-6 bg-green-50 rounded-xl p-5 border border-green-200'>
+                  <p className='text-sm font-bold text-gray-900 mb-4'>💊 Prescribed Medicines</p>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                    {record.prescribedMedicines.map((medicine, idx) => (
+                      <div key={idx} className='bg-white p-4 rounded-lg border border-green-100 hover:shadow-md transition-shadow'>
+                        <div className='flex items-start gap-3'>
+                          <div className='text-2xl'>💊</div>
+                          <div className='flex-1'>
+                            <p className='font-bold text-gray-900'>{medicine.medicineData?.name}</p>
+                            <p className='text-xs text-gray-600 mt-1'>{medicine.medicineData?.genericName}</p>
+
+                            <div className='mt-3 space-y-2'>
+                              <div className='flex justify-between text-sm'>
+                                <span className='font-semibold text-gray-700'>Category:</span>
+                                <span className='text-gray-900'>{medicine.medicineData?.category}</span>
+                              </div>
+                              <div className='flex justify-between text-sm'>
+                                <span className='font-semibold text-gray-700'>Form:</span>
+                                <span className='text-gray-900'>{medicine.medicineData?.form}</span>
+                              </div>
+                              <div className='flex justify-between text-sm'>
+                                <span className='font-semibold text-gray-700'>Dosage:</span>
+                                <span className='text-gray-900 font-medium'>{medicine.dosage}</span>
+                              </div>
+                            </div>
+
+                            {medicine.instructions && (
+                              <div className='mt-3 pt-3 border-t border-gray-100'>
+                                <p className='text-xs font-semibold text-gray-700 mb-1'>Instructions:</p>
+                                <p className='text-xs text-gray-600'>{medicine.instructions}</p>
+                              </div>
+                            )}
+
+                            <div className='mt-3 pt-3 border-t border-gray-100'>
+                              <p className='text-xs font-semibold text-gray-700 mb-1'>Side Effects:</p>
+                              <p className='text-xs text-gray-600'>{medicine.medicineData?.sideEffects}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Expandable Content */}
               {expandedRecords[record._id] && (
                 <div className='animate-in fade-in-0 slide-in-from-top-2 duration-300'>
-                  {/* Patient Information */}
-                  <div className='mt-6 bg-blue-50 rounded-xl p-5 border border-blue-200'>
-                    <p className='text-sm font-bold text-gray-900 mb-4'>👤 Patient Information</p>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                      <div className='flex justify-between'>
-                        <span className='font-semibold text-gray-700'>Name:</span>
-                        <span className='text-gray-900 font-medium'>{record.userData?.name}</span>
-                      </div>
-                      <div className='flex justify-between'>
-                        <span className='font-semibold text-gray-700'>Email:</span>
-                        <span className='text-gray-900 font-medium'>{record.userData?.email}</span>
-                      </div>
-                      <div className='flex justify-between'>
-                        <span className='font-semibold text-gray-700'>Phone:</span>
-                        <span className='text-gray-900 font-medium'>{record.userData?.phone}</span>
-                      </div>
-                      <div className='flex justify-between'>
-                        <span className='font-semibold text-gray-700'>Gender:</span>
-                        <span className='text-gray-900 font-medium'>{record.userData?.gender}</span>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Clinical Information */}
                   <div className='mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6'>
                     {/* Symptoms */}
@@ -153,96 +247,32 @@ const MyMedicalRecords = () => {
                     </div>
                   )}
 
-                  {/* Ordered Tests */}
-                  {record.orderedTests && record.orderedTests.length > 0 && (
-                    <div className='mt-6 bg-gray-50 rounded-xl p-5 border border-gray-200'>
-                      <p className='text-sm font-bold text-gray-900 mb-4'>🔬 Ordered Tests</p>
-                      <div className='space-y-3'>
-                        {record.orderedTests.map((test, idx) => (
-                          <div key={idx} className='bg-white p-4 rounded-lg border border-gray-100 hover:shadow-md transition-shadow'>
-                            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
-                              <div className='flex-1'>
-                                <p className='font-semibold text-gray-900'>{test.medicalTestData?.name || 'N/A'}</p>
-                                <p className='text-xs text-gray-500 mt-1'>Status: <span className={`font-semibold ${test.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{test.status}</span></p>
-                              </div>
-                              <div className='flex flex-col gap-2'>
-                                <div className='text-right'>
-                                  <p className='text-xs text-gray-600'>Price</p>
-                                  <p className='font-bold text-primary'>
-                                    <NumericFormat
-                                      value={test.medicalTestData?.price || 0}
-                                      displayType={'text'}
-                                      thousandSeparator={true}
-                                      suffix={' VND'}
-                                    />
-                                  </p>
-                                </div>
-                                {test.result && (
-                                  <div className='text-right'>
-                                    <p className='text-xs text-gray-600'>Result</p>
-                                    <p className='font-semibold text-gray-900'>{test.result}</p>
-                                  </div>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => openTestDetail(test)}
-                                className='px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-blue-700 transition-all text-sm'
-                              >
-                                View Details
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                  {/* Doctor Information - At the end */}
+                  <div className='mt-6 bg-blue-50 rounded-xl p-5 border border-blue-200'>
+                    <p className='text-sm font-bold text-gray-900 mb-4'>👨‍⚕️ Doctor Information</p>
+                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                      <div className='flex justify-between'>
+                        <span className='font-semibold text-gray-700'>Doctor:</span>
+                        <span className='text-gray-900 font-medium'>{record.doctorData?.name || 'N/A'}</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span className='font-semibold text-gray-700'>Speciality:</span>
+                        <span className='text-gray-900 font-medium'>{record.doctorData?.speciality || 'N/A'}</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span className='font-semibold text-gray-700'>Experience:</span>
+                        <span className='text-gray-900 font-medium'>{record.doctorData?.experience || 'N/A'}</span>
+                      </div>
+                      <div className='flex justify-between'>
+                        <span className='font-semibold text-gray-700'>Degree:</span>
+                        <span className='text-gray-900 font-medium'>{record.doctorData?.degree || 'N/A'}</span>
+                      </div>
+                      <div className='flex justify-between sm:col-span-2'>
+                        <span className='font-semibold text-gray-700'>Email:</span>
+                        <span className='text-gray-900 font-medium'>{record.doctorData?.email || 'N/A'}</span>
                       </div>
                     </div>
-                  )}
-
-                  {/* Prescribed Medicines */}
-                  {record.prescribedMedicines && record.prescribedMedicines.length > 0 && (
-                    <div className='mt-6 bg-green-50 rounded-xl p-5 border border-green-200'>
-                      <p className='text-sm font-bold text-gray-900 mb-4'>💊 Prescribed Medicines</p>
-                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                        {record.prescribedMedicines.map((medicine, idx) => (
-                          <div key={idx} className='bg-white p-4 rounded-lg border border-green-100 hover:shadow-md transition-shadow'>
-                            <div className='flex items-start gap-3'>
-                              <div className='text-2xl'>💊</div>
-                              <div className='flex-1'>
-                                <p className='font-bold text-gray-900'>{medicine.medicineData?.name}</p>
-                                <p className='text-xs text-gray-600 mt-1'>{medicine.medicineData?.genericName}</p>
-
-                                <div className='mt-3 space-y-2'>
-                                  <div className='flex justify-between text-sm'>
-                                    <span className='font-semibold text-gray-700'>Category:</span>
-                                    <span className='text-gray-900'>{medicine.medicineData?.category}</span>
-                                  </div>
-                                  <div className='flex justify-between text-sm'>
-                                    <span className='font-semibold text-gray-700'>Form:</span>
-                                    <span className='text-gray-900'>{medicine.medicineData?.form}</span>
-                                  </div>
-                                  <div className='flex justify-between text-sm'>
-                                    <span className='font-semibold text-gray-700'>Dosage:</span>
-                                    <span className='text-gray-900 font-medium'>{medicine.dosage}</span>
-                                  </div>
-                                </div>
-
-                                {medicine.instructions && (
-                                  <div className='mt-3 pt-3 border-t border-gray-100'>
-                                    <p className='text-xs font-semibold text-gray-700 mb-1'>Instructions:</p>
-                                    <p className='text-xs text-gray-600'>{medicine.instructions}</p>
-                                  </div>
-                                )}
-
-                                <div className='mt-3 pt-3 border-t border-gray-100'>
-                                  <p className='text-xs font-semibold text-gray-700 mb-1'>Side Effects:</p>
-                                  <p className='text-xs text-gray-600'>{medicine.medicineData?.sideEffects}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>

@@ -1,24 +1,23 @@
 import appointmentModel from "../models/appointmentModel.js";
-import doctorModel from "../models/doctorModel.js";
 import transactionModel from "../models/transationModel.js"
 import axios from 'axios'
 
 // verify payment from external api
 const verifyPaymentFromTransaction = async (content, amount) => {
     try {
-        const data = await axios.get(process.env.API_CHECK_PAYMENT);
+        const data = await axios.get('https://script.google.com/macros/s/AKfycbzfrXYdmREfWLKRiIAcjnDHTVKDzHIaLKoXwOus2Rf8n1aue_1uhWJtANqZ7Hm7twib/exec');
 
         if (!data || !data.data || !Array.isArray(data.data.data)) {
             return null;
         }
 
         const transactions = data.data.data;
+        
         const key = content.slice(0, 20);
 
         const matched = transactions.find(t =>
             t.transaction_content.includes(key) && Number(t.amount_in) >= Number(amount)
         );
-
         return matched || null;
     } catch (e) {
         console.log('Error verifying payment:', e);

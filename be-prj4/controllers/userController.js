@@ -8,6 +8,7 @@ import appointmentModel from '../models/appointmentModel.js';
 import { GoogleGenAI } from '@google/genai';
 import medicalRecordModel from '../models/medicalRecordModel.js';
 import userNotSignModel from '../models/userNotSignModel.js';
+import testingStaffModel from '../models/testingStaffModel.js';
 import { uploadToCloudinary } from '../utils/cloudinaryUpload.js';
 
 // Validate additional user info for non-signed users
@@ -537,46 +538,13 @@ const listAppointments = async (req, res) => {
         // Fetch all non-cancelled appointments for the user
         const appointments = await appointmentModel.find({
             userId: userData.id,
-            cancelled: false,
-            isCompleted: { $ne: "completed" }
-        });
-
-        // If no appointments, return empty array
-        if (appointments.length === 0) {
-            return res.json({
-                success: true,
-                appointments: []
-            });
-        }
-
-        // Fetch pending medical records for this user
-        const medicalRecords = await medicalRecordModel.find({
-            userId: userData.id,
-            isCompleted: false
-        });
-
-        // Create a Map for quick lookup: appointmentId -> medicalRecord (O(m) instead of O(n*m))
-        const medicalRecordMap = new Map();
-        medicalRecords.forEach(record => {
-            medicalRecordMap.set(record.appointmentId.toString(), record);
-        });
-
-        // Merge appointments with their pending medical records (if any)
-        const appointmentsWithRecords = appointments.map(appointment => {
-            const appointmentObj = appointment.toObject();
-            const pendingRecord = medicalRecordMap.get(appointment._id.toString());
-
-            // Only add pendingMedicalRecord if it exists
-            if (pendingRecord) {
-                appointmentObj.pendingMedicalRecord = pendingRecord;
-            }
-
-            return appointmentObj;
+            cancelled: false
+            // isCompleted: "pending"
         });
 
         res.json({
             success: true,
-            appointments: appointmentsWithRecords
+            appointments
         });
     } catch (e) {
         console.log(e);
@@ -586,6 +554,45 @@ const listAppointments = async (req, res) => {
         });
     }
 };
+
+// api get all test waiting list
+const getTestWaitingList = async (req, res) => {
+    try {
+        const userData = req.user;
+        const userId = userData.id;
+
+        const medicalRecords = await medicalRecordModel.find({ userId, isCompleted: false }).lean().sort({ createdAt: -1 });
+
+        let testWaitingList = [];
+        await Promise.all(medicalRecords.map(async (record) => {
+            const staffPromises = record.orderedTests.map(async (test) => {
+                const testingStaffData = test.performedId ? await testingStaffModel.findById(test.performedId).select('-password') : null;
+                // console.log(testingStaffData);
+                Object.assign(test, {testingStaffData: testingStaffData });
+                // console.log(test);
+                return test.status === 'in-progress' || test.status === 'pending' 
+            });
+
+            const pedingStatuses = await Promise.all(staffPromises);
+            const hasPendingTest = pedingStatuses.some(Boolean);
+
+            if (hasPendingTest) {
+                testWaitingList.push(record);
+            }
+        }));
+        
+        return res.json({
+            success: true,
+            testWaitingList
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).json({
+            success: false,
+            message: e.message
+        });
+    }
+}
 
 // api cancel appointment
 const cancelAppointment = async (req, res) => {
@@ -667,4 +674,4 @@ const getMedicalRecordByUserId = async (req, res) => {
     }
 };
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointments, cancelAppointment, findDoctorWithAI, getMedicalRecordByUserId, updateDoctorSlots };
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointments, cancelAppointment, findDoctorWithAI, getMedicalRecordByUserId, updateDoctorSlots, getTestWaitingList };

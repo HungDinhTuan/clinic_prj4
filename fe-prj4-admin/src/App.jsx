@@ -25,6 +25,8 @@ import NurseDashboard from './pages/nurse/NurseDashboard.jsx';
 import NurserWaitingList from './pages/nurse/NurserWaitingList.jsx';
 import NurseProfile from './pages/nurse/NurseProfile.jsx';
 import { NurseContext } from './context/NurseContext.jsx';
+import DoctorWaitingTestsResult from './pages/doctor/DoctorWaitingTestsResult.jsx';
+import SearchResults from './componnets/SearchResults.jsx';
 
 const App = () => {
 
@@ -53,6 +55,7 @@ const App = () => {
               {/* Doctor route */}
               <Route path='/doctor/dashboard' element={<DoctorDashboard />} />
               <Route path='/doctor/waiting-list' element={<DoctorWaitingList />} />
+              <Route path='/doctor/waiting-tests-result' element={<DoctorWaitingTestsResult />} />
               <Route path='/doctor/profile' element={<DoctorProfile />} />
               {/* Testing staff route */}
               <Route path='/testing-staff/dashboard' element={<TestingStaffDashboard />} />
@@ -63,6 +66,8 @@ const App = () => {
               <Route path='/nurse/dashboard' element={<NurseDashboard />} />
               <Route path='/nurse/waiting-list' element={<NurserWaitingList />} />
               <Route path='/nurse/profile' element={<NurseProfile />} />
+              {/* Search route */}
+              <Route path='/search-results' element={<SearchResults />} />
             </Routes>
           </div>
         </div>

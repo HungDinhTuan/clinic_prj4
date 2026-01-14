@@ -20,7 +20,7 @@ const medicalRecordSchema = new mongoose.Schema({
         instructions: {type: String}
     }],
     // totalPriceTest: {type: Number, default: 0},
-    isPaid: {type: Boolean, default: false},
+    // isPaid: {type: Boolean, default: false},
     orderedTests: [{
         testId: {type: String, require: true},
         medicalTestData: {type: Object, require: true},

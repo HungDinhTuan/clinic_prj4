@@ -89,7 +89,7 @@ const TestingStaffDashboard = () => {
                       Category: {test.medicalTestData.category}
                     </p>
                     <p className='text-gray-600 dark:text-gray-400 text-xs mt-1'>
-                      Test Date: {slotDateFormat(test.testDoneAt)}
+                      Test Date: {test.testDoneAt}
                     </p>
                   </div>
 

@@ -44,7 +44,6 @@ const DoctorWaitingList = () => {
   const [showTestDetail, setShowTestDetail] = useState(false);
   const [selectedTest, setSelectedTest] = useState(null);
   const [expandedRecords, setExpandedRecords] = useState({});
-  const [isCompletedFilter, setIsCompletedFilter] = useState('false');
 
   // Toggle medical record expand/collapse
   const toggleRecord = (recordId) => {
@@ -105,6 +104,7 @@ const DoctorWaitingList = () => {
         setDiagnosis('');
         setTestIds([]);
         getWaitingPatients(selectedDate || undefined);
+        navigate('/doctor/waiting-tests-result');
         if (testIds.length === 0) {
           setShowPrescribeTestsPopup(false);
           setShowPrescribeMedsPopup(true);
@@ -273,9 +273,9 @@ const DoctorWaitingList = () => {
       getAppointments();
       getAllMedicalTests();
       getAllMedicines();
-      getWaitingPatients(selectedDate || undefined, isCompletedFilter);
+      getWaitingPatients(selectedDate || undefined);
     }
-  }, [dToken, selectedDate, isCompletedFilter]);
+  }, [dToken, selectedDate]);
 
   return (
     <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 dark:bg-gray-950 min-h-screen'>
@@ -285,91 +285,47 @@ const DoctorWaitingList = () => {
         <p className='text-gray-600 dark:text-gray-400'>Manage patient consultations and prescriptions</p>
       </div>
 
-      {/* Combined Filters Section */}
-      <div className='mb-8 bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-2xl p-8 border border-blue-200 dark:border-gray-700 shadow-lg dark:shadow-xl backdrop-blur-sm'>
-        <div className='space-y-6'>
-          {/* First Row: Date and Status */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-            {/* Date Input */}
-            <div className='space-y-2'>
-              <label className='text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2 uppercase tracking-wide'>
-                <svg className='w-5 h-5 text-blue-600 dark:text-blue-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' />
-                </svg>
-                Select Date
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className='w-full border-2 border-blue-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:focus:border-blue-500 dark:focus:ring-blue-500/30 transition-all cursor-pointer shadow-sm'
-              />
-              {selectedDate && (
-                <div className='bg-white dark:bg-gray-700 rounded-lg px-4 py-2 border border-blue-200 dark:border-gray-600 mt-2'>
-                  <p className='text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wide font-semibold mb-1'>Selected</p>
-                  <p className='text-sm font-bold text-blue-600 dark:text-blue-300'>
-                    {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Status Filter */}
-            <div className='space-y-2'>
-              <label className='text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2 uppercase tracking-wide'>
-                <svg className='w-5 h-5 text-purple-600 dark:text-purple-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' />
-                </svg>
-                Medical Record Status
-              </label>
-              <div className='flex gap-4 flex-wrap'>
-                <label className='flex items-center gap-3 cursor-pointer group'>
-                  <input
-                    type='radio'
-                    name='isCompleted'
-                    value='false'
-                    checked={isCompletedFilter === 'false'}
-                    onChange={(e) => setIsCompletedFilter(e.target.value)}
-                    className='w-5 h-5 cursor-pointer accent-blue-600 dark:accent-blue-400'
-                  />
-                  <span className='text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors'>In Progress</span>
-                </label>
-                <label className='flex items-center gap-3 cursor-pointer group'>
-                  <input
-                    type='radio'
-                    name='isCompleted'
-                    value='true'
-                    checked={isCompletedFilter === 'true'}
-                    onChange={(e) => setIsCompletedFilter(e.target.value)}
-                    className='w-5 h-5 cursor-pointer accent-green-600 dark:accent-green-400'
-                  />
-                  <span className='text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors'>Completed</span>
-                </label>
-              </div>
-            </div>
+      {/* Filters Section */}
+      <div className='mb-8'>
+        <div className='flex flex-col sm:flex-row items-start sm:items-end gap-4'>
+          {/* Date Input */}
+          <div className='flex-1 min-w-[200px]'>
+            <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2'>
+              Filter by Date
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className='w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-white rounded-lg px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/40 transition-all cursor-pointer shadow-sm hover:border-gray-400 dark:hover:border-gray-500'
+            />
           </div>
 
           {/* Clear Button */}
-          {(selectedDate || isCompletedFilter) && (
-            <div className='flex items-center justify-between pt-4 border-t border-blue-200 dark:border-gray-700'>
-              <div className='text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide'>
-                Active Filters: <span className='text-blue-600 dark:text-blue-400'>{selectedDate ? '📅 Date' : ''} {selectedDate && isCompletedFilter ? '•' : ''} {isCompletedFilter ? '📊 Status' : ''}</span>
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedDate('');
-                  setIsCompletedFilter('false');
-                }}
-                className='px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white text-sm font-bold transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg'
-              >
-                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
-                </svg>
-                Clear All Filters
-              </button>
-            </div>
+          {selectedDate && (
+            <button
+              onClick={() => setSelectedDate('')}
+              className='px-4 py-2.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm'
+            >
+              <svg className='w-4 h-4 inline-block mr-1.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M6 18L18 6M6 6l12 12' />
+              </svg>
+              Clear
+            </button>
           )}
         </div>
+
+        {/* Active Filter Badge */}
+        {selectedDate && (
+          <div className='mt-3 flex items-center gap-2'>
+            <span className='inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg text-xs font-semibold text-blue-700 dark:text-blue-300'>
+              <svg className='w-3.5 h-3.5' fill='currentColor' viewBox='0 0 20 20'>
+                <path fillRule='evenodd' d='M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v2h16V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z' clipRule='evenodd' />
+              </svg>
+              {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Table Container */}
@@ -846,7 +802,7 @@ const DoctorWaitingList = () => {
                 </button>
 
                 <button
-                  disabled={prescribeMedicines.length === 0 || !slotTime}
+                  disabled={prescribeMedicines.length === 0}
                   className='px-6 py-2.5 rounded-lg bg-primary dark:bg-blue-600 text-white text-sm font-medium hover:bg-opacity-90 dark:hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md'
                   onClick={() => {
                     const medicalRecordId = selectedItem.from === 'medicalRecord' ? selectedItem._id : selectedItem.medicalRecord?._id;
@@ -854,10 +810,10 @@ const DoctorWaitingList = () => {
                       toast.error('Medical record not found');
                       return;
                     }
-                    if (!followUpDate || !slotTime) {
-                      toast.error('Please select both follow-up date and time');
-                      return;
-                    }
+                    // if (!followUpDate) {
+                    //   toast.error('Please select a follow-up date');
+                    //   return;
+                    // }
                     prescribeMeds(medicalRecordId);
                   }}
                 >
@@ -1149,19 +1105,45 @@ const DoctorWaitingList = () => {
                     <div key={recordIdx} className='bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-6'>
                       {/* Record Header - Doctor & Appointment Info */}
                       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-gray-200 dark:border-gray-700'>
-                        <div className='flex-1'>
-                          <p className='text-2xl font-bold text-gray-900 dark:text-white'>👨‍⚕️ {record.doctorData?.name || 'N/A'}</p>
-                          <p className='text-primary dark:text-blue-400 font-semibold mt-1'>{record.doctorData?.speciality || 'N/A'}</p>
-                        </div>
-                        <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
-                          <div className='flex flex-col gap-2 flex-1'>
-                            <div className={`inline-flex items-center justify-center w-fit px-3 py-1.5 rounded-full font-semibold text-sm ${record.isCompleted ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                              {record.isCompleted ? '✓ Completed' : '⏳ In Progress'}
+                        {expandedRecords[record._id] ? (
+                          <div className='flex-1'>
+                            <div className='flex flex-col gap-2 flex-1'>
+                              <div className={`inline-flex items-center justify-center w-fit px-3 py-1.5 rounded-full font-semibold text-sm ${record.isCompleted ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                                {record.isCompleted ? '✓ Completed' : '⏳ In Progress'}
+                              </div>
+                              <p className='text-sm text-gray-600 dark:text-gray-300 font-medium'>
+                                📅 {slotDateFormat(record.slotDate)} | {record.slotTime}
+                              </p>
                             </div>
-                            <p className='text-sm text-gray-600 dark:text-gray-300 font-medium'>
-                              📅 {slotDateFormat(record.slotDate)} | {record.slotTime}
-                            </p>
                           </div>
+                        ) : (
+                          <div className='flex-1'>
+                            <p className='text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2'>📋 Summary</p>
+                            <div className='space-y-1'>
+                              {record.orderedTests && record.orderedTests.length > 0 && (
+                                <p className='text-sm text-gray-600 dark:text-gray-400'>🔬 Tests: <span className='font-semibold text-gray-900 dark:text-white'>{record.orderedTests.length}</span></p>
+                              )}
+                              {record.prescribedMedicines && record.prescribedMedicines.length > 0 && (
+                                <p className='text-sm text-gray-600 dark:text-gray-400'>💊 Medicines: <span className='font-semibold text-gray-900 dark:text-white'>{record.prescribedMedicines.length}</span></p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <div className='flex flex-col sm:flex-row sm:items-center gap-4'>
+                          {
+                            expandedRecords[record._id]
+                              ? null
+                              : (
+                                <div className='flex flex-col gap-2 flex-1'>
+                                  <div className={`inline-flex items-center justify-center w-fit px-3 py-1.5 rounded-full font-semibold text-sm ${record.isCompleted ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                                    {record.isCompleted ? '✓ Completed' : '⏳ In Progress'}
+                                  </div>
+                                  <p className='text-sm text-gray-600 dark:text-gray-300 font-medium'>
+                                    📅 {slotDateFormat(record.slotDate)} | {record.slotTime}
+                                  </p>
+                                </div>
+                              )
+                          }
                           <button
                             onClick={() => toggleRecord(record._id)}
                             className={`px-3 py-1.5 rounded-xl font-bold transition-all duration-300 whitespace-nowrap border-2 text-base flex items-center justify-center gap-2 ${expandedRecords[record._id]
@@ -1175,42 +1157,149 @@ const DoctorWaitingList = () => {
                         </div>
                       </div>
 
+                      {/* Ordered Tests - Always Visible */}
+                      {record.orderedTests && record.orderedTests.length > 0 && (
+                        <div className='mt-6 bg-gray-50 dark:bg-gray-700 rounded-xl p-5 border border-gray-200 dark:border-gray-600'>
+                          <p className='text-sm font-bold text-gray-900 dark:text-white mb-4'>🔬 Ordered Tests</p>
+                          <div className='space-y-3'>
+                            {record.orderedTests.map((test, idx) => (
+                              <div key={idx} className='bg-white dark:bg-gray-600 p-4 rounded-lg border border-gray-100 dark:border-gray-500'>
+                                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+                                  <div className='flex-1'>
+                                    <p className='font-semibold text-gray-900 dark:text-white'>{test.medicalTestData?.name || 'N/A'}</p>
+                                    <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>Status: <span className={`font-semibold ${test.status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>{test.status}</span></p>
+                                  </div>
+                                  <div className='flex flex-col gap-2'>
+                                    <div className='text-right'>
+                                      <p className='text-xs text-gray-600 dark:text-gray-300'>Price</p>
+                                      <p className='font-bold text-blue-600 dark:text-blue-400'>
+                                        <NumericFormat
+                                          value={test.medicalTestData?.price || 0}
+                                          displayType={'text'}
+                                          thousandSeparator={true}
+                                          suffix={' VND'}
+                                        />
+                                      </p>
+                                    </div>
+                                    {test.result && (
+                                      <div className='text-right'>
+                                        <p className='text-xs text-gray-600 dark:text-gray-300'>Result</p>
+                                        <p className='font-semibold text-gray-900 dark:text-white'>{test.result}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => openTestDetail(test)}
+                                    className='px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all text-sm'
+                                  >
+                                    View Details
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Prescribed Medicines - Always Visible */}
+                      {record.prescribedMedicines && record.prescribedMedicines.length > 0 && (
+                        <div className='mt-6 bg-green-50 dark:bg-gray-700 rounded-xl p-5 border border-green-200 dark:border-gray-600'>
+                          <p className='text-sm font-bold text-gray-900 dark:text-white mb-4'>💊 Prescribed Medicines</p>
+                          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                            {record.prescribedMedicines.map((medicine, idx) => (
+                              <div key={idx} className='bg-white dark:bg-gray-600 p-4 rounded-lg border border-green-100 dark:border-gray-500'>
+                                <div className='flex items-start gap-3'>
+                                  <div className='text-2xl'>💊</div>
+                                  <div className='flex-1'>
+                                    <p className='font-bold text-gray-900 dark:text-white'>{medicine.medicineData?.name}</p>
+                                    <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{medicine.medicineData?.genericName}</p>
+
+                                    <div className='mt-3 space-y-2'>
+                                      <div className='flex justify-between text-sm'>
+                                        <span className='font-semibold text-gray-700 dark:text-gray-300'>Category:</span>
+                                        <span className='text-gray-900 dark:text-white'>{medicine.medicineData?.category}</span>
+                                      </div>
+                                      <div className='flex justify-between text-sm'>
+                                        <span className='font-semibold text-gray-700 dark:text-gray-300'>Form:</span>
+                                        <span className='text-gray-900 dark:text-white'>{medicine.medicineData?.form}</span>
+                                      </div>
+                                      <div className='flex justify-between text-sm'>
+                                        <span className='font-semibold text-gray-700 dark:text-gray-300'>Dosage:</span>
+                                        <span className='text-gray-900 dark:text-white font-medium'>{medicine.dosage}</span>
+                                      </div>
+                                      {medicine.frequency && (
+                                        <div className='flex justify-between text-sm'>
+                                          <span className='font-semibold text-gray-700 dark:text-gray-300'>Frequency:</span>
+                                          <span className='text-gray-900 dark:text-white'>{medicine.frequency}</span>
+                                        </div>
+                                      )}
+                                      {medicine.duration && (
+                                        <div className='flex justify-between text-sm'>
+                                          <span className='font-semibold text-gray-700 dark:text-gray-300'>Duration:</span>
+                                          <span className='text-gray-900 dark:text-white'>{medicine.duration}</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {medicine.instructions && (
+                                      <div className='mt-3 pt-3 border-t border-gray-200 dark:border-gray-500'>
+                                        <p className='text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>Instructions:</p>
+                                        <p className='text-xs text-gray-600 dark:text-gray-400'>{medicine.instructions}</p>
+                                      </div>
+                                    )}
+
+                                    <div className='mt-3 pt-3 border-t border-gray-200 dark:border-gray-500'>
+                                      <p className='text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>Side Effects:</p>
+                                      <p className='text-xs text-gray-600 dark:text-gray-400'>{medicine.medicineData?.sideEffects}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Expandable Content */}
                       {expandedRecords[record._id] && (
-                        <div className='animate-in fade-in-0 slide-in-from-top-2 duration-300 space-y-6 mt-6'>
-                          {/* Patient Information */}
-                          <div className='bg-blue-50 dark:bg-gray-700 rounded-xl p-5 border border-blue-200 dark:border-gray-600'>
-                            <p className='text-sm font-bold text-gray-900 dark:text-white mb-4'>👤 Patient Information</p>
-                            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                              <div className='flex justify-between'>
-                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Name:</span>
-                                <span className='text-gray-900 dark:text-white font-medium'>{record.userData?.name || 'N/A'}</span>
+                        <div className='animate-in fade-in-0 slide-in-from-top-2 duration-300'>
+                          {/* Clinical Information */}
+                          <div className='mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6'>
+                            {/* Symptoms */}
+                            {record.symptons && (
+                              <div className='bg-orange-50 dark:bg-gray-700 rounded-xl p-5 border border-orange-200 dark:border-gray-600'>
+                                <p className='text-sm font-bold text-gray-900 dark:text-white mb-3'>🔍 Symptoms</p>
+                                <p className='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>{record.symptons}</p>
                               </div>
-                              <div className='flex justify-between'>
-                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Email:</span>
-                                <span className='text-gray-900 dark:text-white font-medium'>{record.userData?.email || 'N/A'}</span>
+                            )}
+
+                            {/* Diagnosis */}
+                            {record.diagnosis && (
+                              <div className='bg-purple-50 dark:bg-gray-700 rounded-xl p-5 border border-purple-200 dark:border-gray-600'>
+                                <p className='text-sm font-bold text-gray-900 dark:text-white mb-3'>📋 Diagnosis</p>
+                                <p className='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>{record.diagnosis}</p>
                               </div>
-                              <div className='flex justify-between'>
-                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Phone:</span>
-                                <span className='text-gray-900 dark:text-white font-medium'>{record.userData?.phone || 'N/A'}</span>
-                              </div>
-                              <div className='flex justify-between'>
-                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Gender:</span>
-                                <span className='text-gray-900 dark:text-white font-medium'>{record.userData?.gender || 'N/A'}</span>
-                              </div>
-                            </div>
+                            )}
                           </div>
 
-                          {/* Doctor Information */}
-                          <div className='bg-purple-50 dark:bg-gray-700 rounded-xl p-5 border border-purple-200 dark:border-gray-600'>
+                          {/* Doctor's Notes */}
+                          {record.notes && (
+                            <div className='mt-6 bg-yellow-50 dark:bg-gray-700 rounded-xl p-5 border border-yellow-200 dark:border-gray-600'>
+                              <p className='text-sm font-bold text-gray-900 dark:text-white mb-3'>📝 Doctor's Notes</p>
+                              <p className='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>{record.notes}</p>
+                            </div>
+                          )}
+
+                          {/* Doctor Information - At the end */}
+                          <div className='mt-6 bg-blue-50 dark:bg-gray-700 rounded-xl p-5 border border-blue-200 dark:border-gray-600'>
                             <p className='text-sm font-bold text-gray-900 dark:text-white mb-4'>👨‍⚕️ Doctor Information</p>
                             <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                               <div className='flex justify-between'>
-                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Name:</span>
+                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Doctor:</span>
                                 <span className='text-gray-900 dark:text-white font-medium'>{record.doctorData?.name || 'N/A'}</span>
                               </div>
                               <div className='flex justify-between'>
-                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Specialty:</span>
+                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Speciality:</span>
                                 <span className='text-gray-900 dark:text-white font-medium'>{record.doctorData?.speciality || 'N/A'}</span>
                               </div>
                               <div className='flex justify-between'>
@@ -1221,134 +1310,12 @@ const DoctorWaitingList = () => {
                                 <span className='font-semibold text-gray-700 dark:text-gray-300'>Degree:</span>
                                 <span className='text-gray-900 dark:text-white font-medium'>{record.doctorData?.degree || 'N/A'}</span>
                               </div>
+                              <div className='flex justify-between sm:col-span-2'>
+                                <span className='font-semibold text-gray-700 dark:text-gray-300'>Email:</span>
+                                <span className='text-gray-900 dark:text-white font-medium'>{record.doctorData?.email || 'N/A'}</span>
+                              </div>
                             </div>
                           </div>
-
-                          {/* Clinical Information */}
-                          {record.symptons || record.diagnosis ? (
-                            <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
-                              {/* Symptoms */}
-                              {record.symptons && (
-                                <div className='bg-orange-50 dark:bg-gray-700 rounded-xl p-5 border border-orange-200 dark:border-gray-600'>
-                                  <p className='text-sm font-bold text-gray-900 dark:text-white mb-3'>🔍 Symptoms</p>
-                                  <p className='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>{record.symptons}</p>
-                                </div>
-                              )}
-
-                              {/* Diagnosis */}
-                              {record.diagnosis && (
-                                <div className='bg-purple-50 dark:bg-gray-700 rounded-xl p-5 border border-purple-200 dark:border-gray-600'>
-                                  <p className='text-sm font-bold text-gray-900 dark:text-white mb-3'>📋 Diagnosis</p>
-                                  <p className='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>{record.diagnosis}</p>
-                                </div>
-                              )}
-                            </div>
-                          ) : null}
-
-                          {/* Doctor's Notes */}
-                          {record.notes && (
-                            <div className='bg-yellow-50 dark:bg-gray-700 rounded-xl p-5 border border-yellow-200 dark:border-gray-600'>
-                              <p className='text-sm font-bold text-gray-900 dark:text-white mb-3'>📝 Doctor's Notes</p>
-                              <p className='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>{record.notes}</p>
-                            </div>
-                          )}
-
-                          {/* Ordered Tests */}
-                          {record.orderedTests && record.orderedTests.length > 0 && (
-                            <div className='bg-gray-50 dark:bg-gray-700 rounded-xl p-5 border border-gray-200 dark:border-gray-600'>
-                              <p className='text-sm font-bold text-gray-900 dark:text-white mb-4'>🔬 Ordered Tests</p>
-                              <div className='space-y-3'>
-                                {record.orderedTests.map((test, idx) => (
-                                  <div key={idx} className='bg-white dark:bg-gray-600 p-4 rounded-lg border border-gray-100 dark:border-gray-500'>
-                                    <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
-                                      <div className='flex-1'>
-                                        <p className='font-semibold text-gray-900 dark:text-white'>{test.medicalTestData?.name || 'N/A'}</p>
-                                        <div className='text-xs text-gray-500 dark:text-gray-400 mt-2 space-y-1'>
-                                          <p>Status: <span className={`font-semibold ${test.status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>{test.status}</span></p>
-                                          {test.result && <p>Result: <span className='text-gray-700 dark:text-gray-300'>{test.result}</span></p>}
-                                        </div>
-                                      </div>
-                                      <div className='flex flex-col gap-2'>
-                                        <div className='text-right'>
-                                          <p className='text-xs text-gray-600 dark:text-gray-300'>Price</p>
-                                          <p className='font-bold text-blue-600 dark:text-blue-400'>
-                                            {test.medicalTestData?.price ? `${test.medicalTestData.price.toLocaleString('vi-VN')} VND` : 'N/A'}
-                                          </p>
-                                        </div>
-                                        <button
-                                          onClick={() => openTestDetail(test)}
-                                          className='px-3 py-1.5 bg-blue-600 dark:bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-all text-xs whitespace-nowrap'
-                                        >
-                                          View Details
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Prescribed Medicines */}
-                          {record.prescribedMedicines && record.prescribedMedicines.length > 0 && (
-                            <div className='bg-green-50 dark:bg-gray-700 rounded-xl p-5 border border-green-200 dark:border-gray-600'>
-                              <p className='text-sm font-bold text-gray-900 dark:text-white mb-4'>💊 Prescribed Medicines</p>
-                              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                                {record.prescribedMedicines.map((medicine, idx) => (
-                                  <div key={idx} className='bg-white dark:bg-gray-600 p-4 rounded-lg border border-green-100 dark:border-gray-500'>
-                                    <div className='flex items-start gap-3'>
-                                      <div className='text-2xl'>💊</div>
-                                      <div className='flex-1'>
-                                        <p className='font-bold text-gray-900 dark:text-white'>{medicine.medicineData?.name}</p>
-                                        <p className='text-xs text-gray-600 dark:text-gray-400 mt-1'>{medicine.medicineData?.genericName}</p>
-
-                                        <div className='mt-3 space-y-2'>
-                                          <div className='flex justify-between text-sm'>
-                                            <span className='font-semibold text-gray-700 dark:text-gray-300'>Category:</span>
-                                            <span className='text-gray-900 dark:text-white'>{medicine.medicineData?.category}</span>
-                                          </div>
-                                          <div className='flex justify-between text-sm'>
-                                            <span className='font-semibold text-gray-700 dark:text-gray-300'>Form:</span>
-                                            <span className='text-gray-900 dark:text-white'>{medicine.medicineData?.form}</span>
-                                          </div>
-                                          <div className='flex justify-between text-sm'>
-                                            <span className='font-semibold text-gray-700 dark:text-gray-300'>Dosage:</span>
-                                            <span className='text-gray-900 dark:text-white font-medium'>{medicine.dosage}</span>
-                                          </div>
-                                          {medicine.frequency && (
-                                            <div className='flex justify-between text-sm'>
-                                              <span className='font-semibold text-gray-700 dark:text-gray-300'>Frequency:</span>
-                                              <span className='text-gray-900 dark:text-white'>{medicine.frequency}</span>
-                                            </div>
-                                          )}
-                                          {medicine.duration && (
-                                            <div className='flex justify-between text-sm'>
-                                              <span className='font-semibold text-gray-700 dark:text-gray-300'>Duration:</span>
-                                              <span className='text-gray-900 dark:text-white'>{medicine.duration}</span>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        {medicine.instructions && (
-                                          <div className='mt-3 pt-3 border-t border-gray-200 dark:border-gray-500'>
-                                            <p className='text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>Instructions:</p>
-                                            <p className='text-xs text-gray-600 dark:text-gray-400'>{medicine.instructions}</p>
-                                          </div>
-                                        )}
-
-                                        {medicine.medicineData?.sideEffects && (
-                                          <div className='mt-2 pt-2 border-t border-gray-200 dark:border-gray-500'>
-                                            <p className='text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>Side Effects:</p>
-                                            <p className='text-xs text-gray-600 dark:text-gray-400'>{medicine.medicineData.sideEffects}</p>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>
@@ -1373,8 +1340,7 @@ const DoctorWaitingList = () => {
           </div>
         </div>
       )}
-
-      {/* Test Detail Popup */}
+      {/* popup test detail */}
       {showTestDetail && selectedTest && (
         <div className='fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4'>
           <div className='bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-800'>

@@ -15,6 +15,7 @@ const DoctorContextProvider = ({ children }) => {
   const [medicines, setMedicines] = useState([]);
   const [medicalTests, setMedicalTests] = useState([]);
   const [waitingPatients, setWaitingPatients] = useState([]);
+  const [waitingTestsResults, setWaitingTestsResults] = useState([]);
 
   const getAppointments = async () => {
     try {
@@ -104,14 +105,13 @@ const DoctorContextProvider = ({ children }) => {
     }
   }
 
-  const getWaitingPatients = async (date = null, isCompleted = 'false') => {
+  const getWaitingPatients = async (date = null) => {
     try {
       let url = `${backendDocUrl}/waiting-patients`;
       const params = new URLSearchParams();
       if (date) {
         params.append('date', date);
       }
-      params.append('isCompleted', isCompleted);
 
       if (params.toString()) {
         url += `?${params.toString()}`;
@@ -121,6 +121,30 @@ const DoctorContextProvider = ({ children }) => {
       if (data.success) {
         setWaitingPatients(data.waitingPatients);
         console.log(data.waitingPatients);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (e) {
+      toast.error(e.response.data.message || e.message);
+    }
+  }
+
+  const getWaitingTestsResults = async (date = null) => {
+    try {
+      let url = `${backendDocUrl}/waiting-tests-result`;
+      const params = new URLSearchParams();
+      if (date) {
+        params.append('date', date);
+      }
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const { data } = await axios.get(url, { headers: { dToken } });
+      if (data.success) {
+        setWaitingTestsResults(data.testWaitingList);
+        console.log(data.testWaitingList);
       } else {
         toast.error(data.message);
       }
@@ -148,7 +172,9 @@ const DoctorContextProvider = ({ children }) => {
     medicalTests,
     getAllMedicalTests,
     waitingPatients,
-    getWaitingPatients
+    getWaitingPatients,
+    waitingTestsResults,
+    getWaitingTestsResults
   };
 
   return (

@@ -27,9 +27,29 @@ const NurseContextProvider = ({ children }) => {
         }
     }
 
+    const getNurseProfile = async () => {
+        try {
+            const {data} = await axios.get(`${backendNurseUrl}/get-nurse-profile`, { headers: { nToken } });
+            if (data?.success) {
+                setNurseProfile(data.nurseData);
+            }else {
+                toast.error(data.message);
+            }
+        } catch (e) {   
+            console.log(e);
+            toast.error(e.response?.data?.message || e.message);
+        }   
+    }
+
     const values = {
         backendNurseUrl,
+        nurseProfile,
+        setNurseProfile,
+        getNurseProfile,
         nToken,
+        setNToken,
+        dashData,
+        setDashData,
         doctorsList,
         getDoctorsByNurseCategory
     };

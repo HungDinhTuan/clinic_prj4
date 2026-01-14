@@ -38,7 +38,7 @@ const changeNurseAvailability = async (req, res) => {
 const loginNurse = async (req, res) => {
     try {
         const { email, password } = req.body;
-        
+
         const nurseData = await nurseModel.findOne({ email });
         if (!nurseData) {
             return res.status(404).json({
@@ -59,6 +59,45 @@ const loginNurse = async (req, res) => {
         return res.status(200).json({
             success: true,
             token
+        });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+//api get profile
+const getNurseProfile = async (req, res) => {
+    try {
+        const nurseData = req.nurse;
+        return res.status(200).json({
+            success: true,
+            nurseData
+        });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+//api update profile
+const updateNurseProfile = async (req, res) => {
+    try {
+        const nurseData = req.nurse;
+        const { address, available } = req.body;
+        const nurseId = nurseData._id;
+
+        await nurseModel.findByIdAndUpdate(nurseId, { address, available });
+
+        return res.status(200).json({
+            success: true,
+            message: "Nurse profile updated successfully"
         });
     } catch (e) {
         console.log(e);
@@ -91,8 +130,8 @@ const getDoctorsByNurseCategory = async (req, res) => {
 // api get waiting list patients for nurse
 const getWaitingPatients = async (req, res) => {
     try {
-        const {docId} = req.body;
-        const { date, isCompleted } = req.query; // Get date parameter from query string (format: day_month_year)
+        const { docId } = req.body;
+        const { date } = req.query;
 
         if (!docId) {
             return res.status(400).json({
@@ -130,12 +169,12 @@ const getWaitingPatients = async (req, res) => {
 
         const medicalRecords = await medicalRecordModel.find({
             doctorId: docId,
-            isCompleted: isCompleted === 'true' ? true : isCompleted === 'false' ? false : false
+            isCompleted: false
         }).populate({
             path: 'userId',
             select: 'name image dob phone gender'
         });
-
+        
         // filter medical records where all ordered tests are completed
         let medicalRecordsTestsDone = medicalRecords.filter(record => {
             return record.orderedTests.every(test => test.status === 'completed');
@@ -190,4 +229,32 @@ const getWaitingPatients = async (req, res) => {
     }
 }
 
-export { changeNurseAvailability, loginNurse, getDoctorsByNurseCategory, getWaitingPatients };
+// api patient check up
+const patientCheckup = async (req, res) => {
+    try {
+        const { waitingPatients, index } = req.body;
+
+        if ( Array.isArray(waitingPatients) === false || waitingPatients.length < 0 || index < 0 || index >= waitingPatients.length ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid input data"
+            });
+        }
+        const item = waitingPatients.splice(index, 1)[0];
+            waitingPatients.unshift(item);
+
+            res.status(200).json({
+                success: true,
+                message: "Patient checkup completed",
+                waitingPatients
+            });
+    } catch (e) {
+        console.log(e);
+        res.status(403).send({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+export { changeNurseAvailability, loginNurse, getDoctorsByNurseCategory, getWaitingPatients, getNurseProfile, updateNurseProfile, patientCheckup };

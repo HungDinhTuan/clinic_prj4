@@ -5,6 +5,7 @@ import { changeAvailablityTS } from '../controllers/testingStaffController.js'
 import upload from '../middlewares/multer.js'
 import authAdmin from '../middlewares/authAdmin.js'
 import { changeNurseAvailability } from '../controllers/nurseController.js'
+import { searchMedicalRecords } from '../controllers/doctorController.js'
 
 const adminRoute = express.Router();
 
@@ -33,5 +34,6 @@ adminRoute.get('/medical-test/:id', authAdmin, findMedicalTestById);
 adminRoute.delete('/delete-medical-test', authAdmin, deleteMedicalTest);
 adminRoute.post('/add-nurse', authAdmin, upload.single('image'), addNurse);
 adminRoute.get('/all-nurses', authAdmin, getAllNurses);
+adminRoute.post('/search-medical-records', authAdmin, searchMedicalRecords);
 
 export default adminRoute

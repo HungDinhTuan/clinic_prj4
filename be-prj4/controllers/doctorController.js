@@ -287,7 +287,7 @@ const createDiagnosis = async (req, res) => {
         // assign tests to testing staffs
         let orderedTests = [];
         let errors = [];
-        let totalPriceTest = 0;
+        // let totalPriceTest = 0;
         if (testIds && testIds.length > 0) {
             for (const testId of testIds) {
                 const testData = await medicalTestModel.findById(testId);
@@ -331,7 +331,7 @@ const createDiagnosis = async (req, res) => {
                     status: 'pending'
                 };
                 orderedTests.push(orderedTest);
-                totalPriceTest += testData.price;
+                // totalPriceTest += testData.price;
             }
         }
 
@@ -355,7 +355,7 @@ const createDiagnosis = async (req, res) => {
             userData,
             orderedTests,
             notes,
-            totalPriceTest
+            // totalPriceTest
         };
 
         const newMedicalRecord = new medicalRecordModel(medicalRecordData);
@@ -505,11 +505,11 @@ const prescribedMedicines = async (req, res) => {
         if (!userData) {
             return res.status(403).json({
                 success: false,
-                message: "User data not found for follow-up appointment."
+                message: "User data not found."
             });
         }
 
-        if (followUpDate || slotTime) {
+        if (followUpDate && slotTime) {
             const newAppointment = new appointmentModel({
                 userId: userId,
                 docId: doctorData._id,
@@ -560,7 +560,7 @@ const getWaitingPatients = async (req, res) => {
     try {
         const docData = req.doctor;
         const docId = docData._id;
-        const { date, isCompleted } = req.query; // Get date parameter from query string (format: day_month_year)
+        const { date } = req.query; // Get date parameter from query string (format: day_month_year)
 
         const slotDate = parseDateToSlotDate(date);
         // Get appointments for the doctor
@@ -583,7 +583,7 @@ const getWaitingPatients = async (req, res) => {
 
         const medicalRecords = await medicalRecordModel.find({
             doctorId: docId,
-            isCompleted: isCompleted === 'true' ? true : isCompleted === 'false' ? false : false
+            isCompleted: false
         }).populate({
             path: 'userId',
             select: 'name image dob phone gender'
@@ -671,4 +671,106 @@ const getMedicalRecordsDoneByUserId = async (req, res) => {
     }
 }
 
-export { changeAvailablityD, doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients, getMedicalTestsDone, getMedicalRecordsDoneByUserId, parseDateToSlotDate };
+// api get waiting tests result for doctor panel
+const getWaitingTestsResult = async (req, res) => {
+    try {
+        const doctorData = req.doctor;
+        const docId = doctorData._id;
+        const { date } = req.query; // Get date parameter from query string (format: YYYY-MM-DD or day_month_year)
+
+        const slotDate = date ? parseDateToSlotDate(date) : null;
+
+        const medicalRecords = await medicalRecordModel.find({ doctorId: docId, isCompleted: false }).lean().sort({ createdAt: -1 });
+
+        let testWaitingList = [];
+        await Promise.all(medicalRecords.map(async (record) => {
+            const staffPromises = record.orderedTests.map(async (test) => {
+                const testingStaffData = test.performedId ? await testingStaffModel.findById(test.performedId).select('-password') : null;
+                // console.log(testingStaffData);
+                Object.assign(test, { testingStaffData: testingStaffData });
+                // console.log(test);
+                return test.status === 'in-progress' || test.status === 'pending'
+            });
+
+            const pedingStatuses = await Promise.all(staffPromises);
+            const hasPendingTest = pedingStatuses.some(Boolean);
+
+            if (hasPendingTest) {
+                // Filter by date if provided
+                if (date && record.slotDate !== slotDate) {
+                    return;
+                }
+                testWaitingList.push(record);
+            }
+        }));
+
+        res.status(200).json({
+            success: true,
+            testWaitingList,
+            selectedDate: date || null
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).send({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+//function to escape special characters in regex
+const escapeRegex = (text) => {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// api search medical records for doctor panel
+const searchMedicalRecords = async (req, res) => {
+    try {
+        const doctorData = req.doctor;
+        const { query } = req.body;
+
+        if (!query) {
+            return res.status(400).json({
+                success: false,
+                message: "Search query is required."
+            });
+        }
+
+        const escapedQuery = escapeRegex(query);
+
+        const userData = await userModel.findOne({
+            $or: [
+                { name: { $regex: `${escapedQuery}`, $options: 'i' } },
+                { phone: { $regex: `${escapedQuery}`, $options: 'i' } },
+                { email: { $regex: `${escapedQuery}`, $options: 'i' } }
+            ]
+        });
+
+        if (!userData) {
+            return res.status(200).json({
+                success: true,
+                message: "No matching user found."
+            });
+        }
+
+        const userId = userData._id;
+        const medicalRecords = await medicalRecordModel.find({ userId: userId, isCompleted: true })
+            .sort({ createdAt: -1 })
+            .populate({ path: 'doctorId', select: 'name speciality image' })
+            .populate({ path: 'orderedTests.testId', select: 'name price category' })
+            .populate({ path: 'prescribedMedicines.medicineId', select: 'name category form' });
+
+        return res.json({
+            success: true,
+            medicalRecords
+        });
+    } catch (e) {
+        console.log(e);
+        res.status(500).send({
+            success: false,
+            message: e.message
+        });
+    }
+}
+
+export { changeAvailablityD, doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients, getMedicalTestsDone, getMedicalRecordsDoneByUserId, parseDateToSlotDate, getWaitingTestsResult, searchMedicalRecords };

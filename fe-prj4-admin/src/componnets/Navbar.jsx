@@ -4,18 +4,32 @@ import { AdminContext } from '../context/AdminContext'
 import { useNavigate } from 'react-router-dom';
 import { DoctorContext } from '../context/DoctorContext';
 import { TestingStaffContext } from '../context/TestingStaffContext';
+import { toast } from 'react-toastify';
+import axios from 'axios';
+import { NurseContext } from '../context/NurseContext';
 
 const Navbar = () => {
 
-    const { aToken, setAToken, adminName, adminImage } = useContext(AdminContext);
-    const { dToken, setDToken, doctorData } = useContext(DoctorContext);
-    const { tToken, setTToken, staffData } = useContext(TestingStaffContext);
+    const { aToken, setAToken, adminName, adminImage, backendUrl } = useContext(AdminContext);
+    const { dToken, setDToken, doctorData, backendDocUrl, getDoctorData } = useContext(DoctorContext);
+    const { tToken, setTToken, testingStaffProfile, backendTestingStaffUrl, getTestingStaffProfile } = useContext(TestingStaffContext);
+    const { nToken, setNToken, nurseProfile, backendNurseUrl, getNurseProfile } = useContext(NurseContext);
 
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('darkMode') === 'true');
     const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+    useEffect(() => {
+        if (dToken && !doctorData) {
+            getDoctorData();
+        } else if (tToken && !testingStaffProfile) {
+            getTestingStaffProfile();
+        } else if (nToken && !nurseProfile) {
+            getNurseProfile();
+        }
+    }, [dToken, tToken, nToken, doctorData, testingStaffProfile, nurseProfile, getDoctorData, getTestingStaffProfile, getNurseProfile]);
 
     useEffect(() => {
         if (isDarkMode) {
@@ -43,6 +57,9 @@ const Navbar = () => {
         } else if (tToken) {
             tToken && setTToken('');
             tToken && localStorage.removeItem('tToken');
+        } else if (nToken) {
+            nToken && setNToken('');
+            nToken && localStorage.removeItem('nToken');
         }
         setShowProfileMenu(false);
     };
@@ -54,6 +71,8 @@ const Navbar = () => {
             navigate('/doctor/profile');
         } else if (tToken) {
             navigate('/testing-staff/profile');
+        } else if (nToken) {
+            navigate('/nurse/profile');
         }
         setShowProfileMenu(false);
     };
@@ -61,23 +80,88 @@ const Navbar = () => {
     const getProfileImage = () => {
         if (aToken && adminImage) return adminImage;
         if (dToken && doctorData?.image) return doctorData.image;
-        if (tToken && staffData?.image) return staffData.image;
+        if (tToken && testingStaffProfile?.image) return testingStaffProfile.image;
+        if (nToken && nurseProfile?.image) return nurseProfile.image;
         return assets.upload_area;
     };
 
     const getProfileName = () => {
         if (aToken && adminName) return adminName;
         if (dToken && doctorData?.name) return doctorData.name;
-        if (tToken && staffData?.name) return staffData.name;
+        if (tToken && testingStaffProfile?.name) return testingStaffProfile.name;
+        if (nToken && nurseProfile?.name) return nurseProfile.name;
         return 'User';
     };
 
     const getRoleLabel = () => {
-        return aToken ? 'Admin' : dToken ? 'Doctor' : 'Testing Staff';
+        return aToken ? 'Admin' : dToken ? 'Doctor' : tToken ? 'Testing Staff' : 'Nurse';
     };
 
     const getRoleShorthand = () => {
-        return aToken ? 'A' : dToken ? 'D' : 'T';
+        return aToken ? 'A' : dToken ? 'D' : tToken ? 'T' : 'N';
+    };
+
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) {
+            toast.warning('Please enter a search query');
+            return;
+        }
+
+        try {
+            let token, url, headerName;
+
+            // assign role, token, and appropriate header name
+            if (dToken) {
+                token = dToken;
+                url = backendDocUrl;
+                headerName = 'dtoken';
+            } else if (aToken) {
+                token = aToken;
+                url = backendUrl;
+                headerName = 'atoken';
+            } else if (tToken) {
+                token = tToken;
+                url = backendTestingStaffUrl;
+                headerName = 'ttoken';
+            } else if (nToken) {
+                token = nToken;
+                url = backendNurseUrl;
+                headerName = 'ntoken';
+            }
+
+            if (!token || !url) {
+                toast.error('Authentication required');
+                return;
+            }
+
+            const response = await axios.post(`${url}/search-medical-records`, {
+                query: searchQuery
+            }, {
+                headers: {
+                    [headerName]: token
+                }
+            });
+
+            const data = response.data;
+
+            if (data.success) {
+                // Navigate to search results page with data
+                navigate('/search-results', { state: { searchResults: data.medicalRecords || [], searchQuery } });
+                setSearchQuery('');
+            } else {
+                toast.info(data.message || 'No results found');
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            const errorMessage = error.response?.data?.message || 'Error performing search';
+            toast.error(errorMessage);
+        }
+    };
+
+    const handleSearchKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
     };
 
     return (
@@ -116,12 +200,18 @@ const Navbar = () => {
                     <div className='hidden sm:flex items-center border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all'>
                         <input
                             type="text"
-                            placeholder='Search or type command...'
-                            className='outline-none bg-transparent text-sm w-52 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400'
+                            placeholder='Find medical records of patients with name, phone or email.....'
+                            className='outline-none bg-transparent text-sm w-100 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400'
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyPress={handleSearchKeyPress}
                         />
-                        <img className='w-4 h-4 cursor-pointer ml-2 opacity-60 hover:opacity-100' src={assets.search_icon} alt="search" />
+                        <img
+                            className='w-4 h-4 cursor-pointer ml-2 opacity-60 hover:opacity-100 transition-opacity'
+                            src={assets.search_icon}
+                            alt="search"
+                            onClick={handleSearch}
+                        />
                     </div>
                 </div>
 

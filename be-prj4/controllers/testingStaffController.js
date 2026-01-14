@@ -6,7 +6,6 @@ import { v2 as cloudinary } from 'cloudinary'
 import appointmentModel from "../models/appointmentModel.js"
 import medicalTestModel from "../models/medicalTestModel.js"
 import doctorModel from "../models/doctorModel.js"
-import e from "express"
 import { uploadMultipleToCloudinary } from "../utils/cloudinaryUpload.js"
 
 //api change avaibility testing staff

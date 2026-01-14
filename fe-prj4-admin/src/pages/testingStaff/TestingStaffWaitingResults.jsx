@@ -7,8 +7,11 @@ import { TestingStaffContext } from '../../context/TestingStaffContext.jsx';
 import { assets } from '../../assets/assets_admin/assets.js';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 const TestingStaffWaitingResults = () => {
+
+    const navigate = useNavigate();
 
     const { backendTestingStaffUrl, tToken, waitingResults, getWaitingResults } = useContext(TestingStaffContext);
 
@@ -41,6 +44,7 @@ const TestingStaffWaitingResults = () => {
                 getWaitingResults();
                 setShowPopup(false);
                 toast.success('Details assigned successfully');
+                // navigate(`/waiting-results?status=completed`);
             } else {
                 toast.error(data.message);
             }
@@ -72,7 +76,7 @@ const TestingStaffWaitingResults = () => {
         <div className='w-full max-w-7xl mx-auto px-4 sm:px-6 py-8'>
             {/* Header */}
             <div className='mb-8'>
-                <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 mb-2'>Test Results Pending</h1>
+                <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 mb-2'>Test Results</h1>
                 <p className='text-gray-600 text-sm'>Add results and notes for medical tests received</p>
             </div>
 
@@ -125,7 +129,15 @@ const TestingStaffWaitingResults = () => {
                     <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Diagnosis</p>
                     <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Note</p>
                     <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Expected Time</p>
-                    <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Action</p>
+                    {
+                        statusFilter === 'in-progress'
+                            ? (
+                                <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Action</p>
+                            )
+                            : (
+                                <p className='text-xs font-bold text-gray-700 uppercase tracking-wider text-center'>Details</p>
+                            )
+                    }
                 </div>
 
                 {/* Table Body */}
@@ -159,6 +171,8 @@ const TestingStaffWaitingResults = () => {
                                     <p className='flex justify-center items-center text-gray-700 text-sm truncate'>{item.notes}</p>
                                     <p className='flex justify-center items-center text-gray-700 text-sm'>{new Date(item.etc).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
                                     <div className='flex justify-center items-center'>
+                                        {
+                                            item.testStatus === 'in-progress' ? (
                                                 <button
                                                     onClick={() => { setMedicalRecordId(item.medicalRecordId); setShowPopup(true); }}
                                                     className='p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors'
@@ -166,7 +180,17 @@ const TestingStaffWaitingResults = () => {
                                                 >
                                                     <img src={assets.details_medical_test_icon} alt="Add Results" className='w-5 h-5' />
                                                 </button>
-                                            </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => { getDetailTestResultById(item.medicalRecordId, item.testId); setShowTestDetail(true); }}
+                                                    className='p-2 rounded-lg bg-blue-100 hover:bg-blue-200 transition-colors'
+                                                    title='Add results'
+                                                >
+                                                    <img src={assets.detail_icon} alt="Add Results" className='w-5 h-5' />
+                                                </button>
+                                            )
+                                        }
+                                    </div>
                                 </div>
                             ))
                         ) : (

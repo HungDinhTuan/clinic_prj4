@@ -1,8 +1,7 @@
 import express from 'express';
-import { doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients, getMedicalTestsDone, getMedicalRecordsDoneByUserId } from '../controllers/doctorController.js';
+import { doctorList, loginDoctor, appointmentsDoctor, appointmentComplete, doctorDashboard, doctorProfile, updateDoctorProfile, createDiagnosis, prescribedMedicines, getWaitingPatients, getMedicalTestsDone, getMedicalRecordsDoneByUserId, getWaitingTestsResult, searchMedicalRecords } from '../controllers/doctorController.js';
 import authDoctor from '../middlewares/authDoctor.js';
 import { getAllMedicalTests, getAllMedicines } from '../controllers/adminController.js';
-import { getMedicalRecordByUserId } from '../controllers/userController.js';
 
 const doctorRoute = express.Router();
 
@@ -20,5 +19,7 @@ doctorRoute.put('/prescription-medicines', authDoctor, prescribedMedicines);
 doctorRoute.post('/medical-tests-done', authDoctor, getMedicalTestsDone);
 doctorRoute.get('/waiting-patients', authDoctor, getWaitingPatients);
 doctorRoute.post('/medical-record', authDoctor, getMedicalRecordsDoneByUserId);
+doctorRoute.get('/waiting-tests-result', authDoctor, getWaitingTestsResult);
+doctorRoute.post('/search-medical-records', authDoctor, searchMedicalRecords);
 
 export default doctorRoute
